@@ -1,3 +1,7 @@
+<?php
+require("includes/connection.php");
+?>
+
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
@@ -44,6 +48,7 @@
 					<p class="lead my-3">Welcome to Kevin's Store. This is a basic online store created in php and html. You can view the source code at my github.</p>
 				</div>
 			</div>
+      		<?php require("products.php") ?>
 		</div>
     </body> 
 </html>
