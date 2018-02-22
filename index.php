@@ -38,9 +38,16 @@ require("includes/connection.php");
 			<div class="nav-scroller py-1 mb-2">
 				<nav class="nav d-flex justify-content-between">
 					<a class="p-2 text-muted" href="#">HOME</a>
-					<a class="p-2 text-muted" href="#">HEALTH</a>
-					<a class="p-2 text-muted" href="#">STYLE</a>
-					<a class="p-2 text-muted" href="#">SPORTS</a>
+					<?php 
+					$select_categories = "SELECT * FROM categories";
+					$categories_result = $mysqli->query($select_categories);
+
+					while ($category = $categories_result->fetch_array()) {
+					?>
+					<a class="p-2 text-muted" href="index.php?category=<?php echo $category['name'] ?>"><?php echo $category['name'] ?> </a>
+					<?php 
+					}
+					?>
 				</nav>
 			</div>
 			<div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
