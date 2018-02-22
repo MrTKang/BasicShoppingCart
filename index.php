@@ -1,6 +1,16 @@
 <?php
 require("includes/connection.php");
 session_start();
+
+if (isset($_POST['edit_cart'])) {
+	foreach($_POST['quantity'] as $key => $value) {
+		if ($value == 0) {
+			unset($_SESSION['cart'][$key]);
+		} else {
+			$_SESSION['cart'][$key]['quantity'] = $value;
+		}
+	}
+}
 ?>
 
 
@@ -82,23 +92,33 @@ session_start();
                 					$select_products = substr($select_products, 0, -2);
                 					$select_products.= ") ORDER BY name ASC";
 									$products_result = $mysqli->query($select_products);
-									while ($product = $products_result->fetch_array()){
-							?>
-							<p><?php echo $product['name'] ?> X <?php echo $_SESSION['cart'][$product['product_id']]['quantity'] ?></p>
+									if ($products_result->num_rows == 0) {
+										$cart_empty = true;
+									} else {
+										$checkout_price = 0;
+										while ($product = $products_result->fetch_array()){
+											$checkout_price += $product['price'];
+								?>
+								<p><?php echo $product['name'] ?> X <input type="text" name="quantity[<?php echo $product['product_id'] ?>]" value="<?php echo $_SESSION['cart'][$product['product_id']]['quantity'] ?>" size="5"/> = <?php echo $product['price'] * $_SESSION['cart'][$product['product_id']]['quantity'] ?></p>
 
 							<?php
+										}
 									}
 								} else {
+									$cart_empty = true;
+								}
 							?>
 
-							<p>Your Cart is empty. Please add some products.</p>
-
 							<?php
-								}
+							if (isset($cart_empty) && $cart_empty) {
+							?>
+							<p>Your Cart is empty. Please add some products.</p>
+							<?php
+							}	
 							?>
 	            		</div>
 	            		<div class="modal-footer">
-	            			<button type="submit" name="submit" class="btn btn-primary">Save changes</button>
+	            			<button type="submit" name="edit_cart" class="btn btn-primary">Save changes</button>
 	            			<a href="checkout" class="btn btn-primary">Checkout</a>
 	            		</div>
 	          		</div>
