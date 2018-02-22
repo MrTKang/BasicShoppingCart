@@ -1,5 +1,6 @@
 <?php
 require("includes/connection.php");
+session_start();
 ?>
 
 
@@ -57,5 +58,52 @@ require("includes/connection.php");
 			</div>
       		<?php require("products.php") ?>
 		</div>
+
+
+		<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	    	<div class="modal-dialog" role="document">
+	    		<form method="post" action="index.php">
+	    			<div class="modal-content">
+	    				<div class="modal-header">
+	    					<h5 class="modal-title" id="exampleModalLabel">CART</h5>
+			            	<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			                	<span aria-hidden="true">&times;</span>
+			              	</button>
+	            		</div>
+						<div class="modal-body">
+							<?php 
+								if (isset($_SESSION['cart'])) {
+									$select_products = "SELECT * FROM products WHERE product_id IN (";
+									foreach ($_SESSION['cart'] as $id => $value){
+										$select_products.=$id;
+										$select_products.=", ";
+									}
+
+                					$select_products = substr($select_products, 0, -2);
+                					$select_products.= ") ORDER BY name ASC";
+									$products_result = $mysqli->query($select_products);
+									while ($product = $products_result->fetch_array()){
+							?>
+							<p><?php echo $product['name'] ?> X <?php echo $_SESSION['cart'][$product['product_id']]['quantity'] ?></p>
+
+							<?php
+									}
+								} else {
+							?>
+
+							<p>Your Cart is empty. Please add some products.</p>
+
+							<?php
+								}
+							?>
+	            		</div>
+	            		<div class="modal-footer">
+	            			<button type="submit" name="submit" class="btn btn-primary">Save changes</button>
+	            			<a href="checkout" class="btn btn-primary">Checkout</a>
+	            		</div>
+	          		</div>
+	        	</form>
+	      	</div>
+	    </div>
     </body> 
 </html>
