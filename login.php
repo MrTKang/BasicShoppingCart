@@ -1,3 +1,28 @@
+<?php
+require("includes/connection.php");
+session_start();
+
+if (isset($_POST['submit'])) {
+    $select_user = "SELECT * FROM users WHERE email = '";
+    $select_user.= $_POST['email'];
+    $select_user.= "'";
+
+    $select_user_result = $mysqli->query($select_user);
+    if ($select_user_result->num_rows == 1) {
+        $login_user = $select_user_result->fetch_array();
+
+        if ($login_user['password'] === md5($_POST['password'])) {
+            $_SESSION['user'] = $login_user;
+            header("Location: index.php");
+        } else {
+            $error_message = "wrong password";
+        }
+
+    }
+
+}
+
+?>
 
 <html lang="en">
     <head>
@@ -12,7 +37,7 @@
     <body >
         <div class="login-container">
             <form class="login-form" method="post" action="login.php">
-                <h1></h1>
+                <h1><?php echo $error_message ?></h1>
                 <label>Email</label>
                 <input type="email" name="email" class="form-control" required="" autofocus="">
                 <label>Password</label>
