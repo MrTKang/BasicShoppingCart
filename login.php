@@ -17,9 +17,7 @@ if (isset($_POST['submit'])) {
         } else {
             $error_message = "wrong password";
         }
-
     }
-
 }
 
 ?>

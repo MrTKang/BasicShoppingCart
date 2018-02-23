@@ -117,9 +117,10 @@ $logged_in = isset($_SESSION['user']);
 									} else {
 										$checkout_price = 0;
 										while ($product = $products_result->fetch_array()){
-											$checkout_price += $product['price'];
+											$quantity = $_SESSION['cart'][$product['product_id']]['quantity'];
+											$checkout_price += $product['price'] * $quantity;
 								?>
-								<p><?php echo $product['name'] ?> X <input type="text" name="quantity[<?php echo $product['product_id'] ?>]" value="<?php echo $_SESSION['cart'][$product['product_id']]['quantity'] ?>" size="5"/> = <?php echo $product['price'] * $_SESSION['cart'][$product['product_id']]['quantity'] ?></p>
+								<p><?php echo $product['name'] ?> X <input type="text" name="quantity[<?php echo $product['product_id'] ?>]" value="<?php echo $quantity ?>" size="5"/> = $<?php echo (number_format($product['price'] * $quantity , 2, '.', ''))?></p>
 
 							<?php
 										}
