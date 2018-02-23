@@ -38,7 +38,6 @@
                 $select_products.= $checkout['checkout_id'];
 
                 $select_products_result = $mysqli->query($select_products);
-                echo($mysqli->error);
             ?>
             <div class="card">
                 <div class="card-header">
@@ -50,7 +49,6 @@
                     <?php
                     $total_price = 0;
                 while ($product = $select_products_result->fetch_array()) {
-
                     $product_price = number_format($product['price'] * $product['quantity'], 2, '.', '');
                     $total_price+= $product_price;
                     ?>
@@ -66,5 +64,7 @@
             ?>
             </div>
         </div>
+        <a href="myproducts">my products</a>
+        <a href="mycategories">my categories</a>
     </body>
 </html>
