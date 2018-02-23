@@ -15,18 +15,16 @@ if (isset($_POST['checkout']) && isset($_SESSION['user'])) {
 
     $message = "";
 
-    foreach ($_SESSION['cart'] as $product_id => $quantity) {
+    foreach ($_SESSION['cart'] as $product_id => $product) {
         $insert_product_checkout = "INSERT INTO product_checkout (product_id, checkout_id, quantity) VALUES (";
         $insert_product_checkout.= $product_id;
         $insert_product_checkout.= ",";
         $insert_product_checkout.= $checkout_id;
         $insert_product_checkout.= ",";
-        $insert_product_checkout.= $quantity['quantity'];
+        $insert_product_checkout.= $product['quantity'];
         $insert_product_checkout.= ")";
 
         $insert_product_checkout_result = $mysqli->query($insert_product_checkout);
-
-        $message.= $insert_product_checkout;
     }
 
     $insert_user_checkout = "INSERT INTO user_checkout (user_id, checkout_id) VALUES (";
@@ -37,6 +35,7 @@ if (isset($_POST['checkout']) && isset($_SESSION['user'])) {
 
     $insert_user_checkout_result = $mysqli->query($insert_user_checkout);
 
+    unset($_SESSION['cart']);
 }
 ?>
 
