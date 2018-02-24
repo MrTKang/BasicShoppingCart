@@ -16,7 +16,7 @@ if (isset($_SESSION['user']) && isset($_POST['product'])) {
     $target_dir = "images/";
     $target_file = $target_dir.basename($_FILES["upload"]["name"]);
 
-    $insert_product = "INSERT INTO product (name, description, price, image) VALUES ('";
+    $insert_product = "INSERT INTO products (name, description, price, image) VALUES ('";
     $insert_product.= $_POST['name'];
     $insert_product.= "', '";
     $insert_product.= $_POST['description'];
@@ -28,6 +28,8 @@ if (isset($_SESSION['user']) && isset($_POST['product'])) {
 
     $insert_product_result = $mysqli->query($insert_product);
     $product_id = $mysqli->insert_id;
+
+    echo $mysqli->error;
 
     $insert_user_product = "INSERT INTO user_product (user_id, product_id) VALUES (";
     $insert_user_product.= $_SESSION['user_id'];
@@ -86,7 +88,7 @@ if (isset($_SESSION['user']) && isset($_POST['product'])) {
         <link href="css/style.css" rel="stylesheet">
     </head>
     <body>
-        <div class="products_container">
+        <div class="product-container">
             <?php 
             while ($product = $select_user_product_result->fetch_array()) {
             ?>
@@ -94,15 +96,13 @@ if (isset($_SESSION['user']) && isset($_POST['product'])) {
             <?php
             } 
             ?>
-            <form id="productform" action="myproducts.php" method="post" enctype="multipart/form-data">
-                Product name: <input type="text" name="name"><br>
-                Description: <input type="text" name="description"><br>
-                Price: <input type="number" name="price"><br>
-                Image : <input type="file" name="upload" id="upload"><br>
-                <button type="submit" name="product">submit</button>
-            </form>
+            <form class="product-form" id="productform" action="myproducts.php" method="post" enctype="multipart/form-data">
+                Product name: <input class="form-control" type="text" name="name"><br>
+                Description: <input class="form-control" type="text" name="description"><br>
+                Price: <input class="form-control" type="number" name="price"><br>
+                Image : <input class="form-control-file" type="file" name="upload" id="upload"><br>
 
-            <select name="category" form="productform">
+            <select class="category-select form-control" name="category" form="productform">
             <?php
             $select_categories = "SELECT * FROM categories";
             $select_categories_result = $mysqli->query($select_categories);
@@ -113,6 +113,9 @@ if (isset($_SESSION['user']) && isset($_POST['product'])) {
             }
             ?>
             </select>
+                <button class="btn btn-lg btn-primary btn-block product-btn" type="submit" name="product">Submit</button>
+            </form>
+
         </div>
     </body>
 </html>

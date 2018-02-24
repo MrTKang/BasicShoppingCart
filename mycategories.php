@@ -21,12 +21,12 @@ if (isset($_SESSION['user']) && isset($_POST['category'])) {
         <link href="css/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="css/style.css" rel="stylesheet">
     </head>
-    
+
     <body>
-        <div class="products_container">
-            <form action="mycategories.php" method="post">
-                Category name: <input type="text" name="name"><br>
-                <button type="submit" name="category">submit</button>
+        <div class="category-container">
+            <form class="category-form" action="mycategories.php" method="post">
+                Category name: <input class="form-control" type="text" name="name"><br>
+                <button class="btn btn-lg btn-primary btn-block category-btn" type="submit" name="category">submit</button>
             </form>
         </div>
     </body>
