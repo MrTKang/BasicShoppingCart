@@ -1,0 +1,7 @@
+Thank you for creating an account.
+
+Please click on the link to complete your sign-up process.
+
+{ADDRESS}/login.php?email={EMAIL}&key={KEY}
+
+Thank you.
