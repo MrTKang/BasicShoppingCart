@@ -1,18 +1,9 @@
 <?php
-require("includes/connection.php");
+require("includes/functions.php");
 session_start();
 
-if (isset($_POST['edit_cart'])) {
-	foreach($_POST['quantity'] as $key => $value) {
-		if ($value == 0) {
-			unset($_SESSION['cart'][$key]);
-		} else {
-			$_SESSION['cart'][$key]['quantity'] = $value;
-		}
-	}
-}
-
-$logged_in = isset($_SESSION['user']);
+edit_cart();
+set_login();
 ?>
 
 
@@ -69,16 +60,7 @@ $logged_in = isset($_SESSION['user']);
 			<div class="nav-scroller py-1 mb-2">
 				<nav class="nav d-flex justify-content-between">
 					<a class="p-2 text-muted" href="#">HOME</a>
-					<?php 
-					$select_categories = "SELECT * FROM categories";
-					$categories_result = $mysqli->query($select_categories);
-
-					while ($category = $categories_result->fetch_array()) {
-					?>
-					<a class="p-2 text-muted" href="index.php?category=<?php echo $category['name'] ?>"><?php echo $category['name'] ?> </a>
-					<?php 
-					}
-					?>
+					<?php display_categories($mysqli) ?>
 				</nav>
 			</div>
 			<div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
@@ -101,42 +83,7 @@ $logged_in = isset($_SESSION['user']);
 			              	</button>
 	            		</div>
 						<div class="modal-body">
-							<?php 
-								if (isset($_SESSION['cart'])) {
-									$select_products = "SELECT * FROM products WHERE product_id IN (";
-									foreach ($_SESSION['cart'] as $id => $value){
-										$select_products.=$id;
-										$select_products.=", ";
-									}
-
-                					$select_products = substr($select_products, 0, -2);
-                					$select_products.= ") ORDER BY name ASC";
-									$products_result = $mysqli->query($select_products);
-									if ($products_result->num_rows == 0) {
-										$cart_empty = true;
-									} else {
-										$checkout_price = 0;
-										while ($product = $products_result->fetch_array()){
-											$quantity = $_SESSION['cart'][$product['product_id']]['quantity'];
-											$checkout_price += $product['price'] * $quantity;
-								?>
-								<p><?php echo $product['name'] ?> X <input type="text" name="quantity[<?php echo $product['product_id'] ?>]" value="<?php echo $quantity ?>" size="5"/> = $<?php echo (number_format($product['price'] * $quantity , 2, '.', ''))?></p>
-
-							<?php
-										}
-									}
-								} else {
-									$cart_empty = true;
-								}
-							?>
-
-							<?php
-							if (isset($cart_empty) && $cart_empty) {
-							?>
-							<p>Your Cart is empty. Please add some products.</p>
-							<?php
-							}	
-							?>
+							<?php display_cart($mysqli) ?>
 	            		</div>
 	            		<div class="modal-footer">
 	            			<button type="submit" name="edit_cart" class="btn btn-primary">Save changes</button>
