@@ -123,16 +123,28 @@ function display_cart($mysqli) {
 
 //SIGNUP
 
+function info_array($message, $error, $signed_up){
+	return array('message' => $message, 'error' => $error, 'signed_up' => $signed_up);
+}
+
 function sign_up_user($mysqli, $gmail_account, $gmail_password) {
-	$redirect_to_login = FALSE;
+	$signed_up = FALSE;
 	$error_message = "";
-	if (isset($_POST['submit']) && $_POST['password'] == $_POST['passwordagain']){
+	$message = "";
+
+	if (isset($_POST['submit']) && $_POST['password'] != $_POST['passwordagain']) {
+	    return info_array("could not process", "passwords are not matching", FALSE);
+
+	} else if (isset($_POST['submit']) && $_POST['password'] == $_POST['passwordagain']){
 		$select_user = "SELECT * FROM users WHERE email='";
 		$select_user.= $_POST['email'];
 		$select_user.= "'";
 		$select_user_result = $mysqli->query($select_user);
 
-		if ($select_user_result->num_rows == 0) {
+		if ($select_user_result->num_rows != 0){
+	    	return info_array("could not process", "The email you submitted is already in use", FALSE);
+
+		} else {
 		    $insert_user = "INSERT INTO users (name, email, password) VALUES ('";
 		    $insert_user.= $_POST['name'];
 		    $insert_user.= "', '";
@@ -141,12 +153,9 @@ function sign_up_user($mysqli, $gmail_account, $gmail_password) {
 		    $insert_user.= $_POST['password'];
 		    $insert_user.= "'))";
 
-		    if ($mysqli->query($insert_user)===TRUE) {
-		        $redirect_to_login = TRUE;
-		    } else {
-		        $message = $mysqli->error;
+		    if ($mysqli->query($insert_user)!==TRUE) {
+	    		return info_array("could not process", $mysqli->error, FALSE);	    		
 		    }
-
 		    $user_id = $mysqli->insert_id;
 
 		    //Make Confirmation Key
@@ -164,45 +173,78 @@ function sign_up_user($mysqli, $gmail_account, $gmail_password) {
 		    
 		    //Set up template
 		    if ($insert_confirmation_key_result === TRUE) {
-
-		        $template = file_get_contents("signup_email_confirmation_template.txt");
-		        $template = str_replace('{EMAIL}', $_POST['email'], $template);
-		        $template = str_replace('{KEY}', $confirmation_key, $template);
-		        $template = str_replace('{ADDRESS}', "http://localhost", $template);
-
-		        //Send Email
-		        $transport = new Swift_SmtpTransport('smtp.gmail.com', 465, 'ssl');
-		        $transport->setUsername($gmail_account);
-		        $transport->setPassword($gmail_password);
-		        $mailer = new Swift_Mailer($transport);
-
-		        $email_message = new Swift_Message("Welcome to Kevin's Store");
-		        $email_message->setFrom(['freestore0202@gmail.com' => "Kevin's Store"]);
-		        $email_message->setTo([$_POST['email'] => $_POST['name']]);
-		        $email_message->setBody($template, 'text/html');
-
-		        $send_result = $mailer->send($email_message);
-
-		        $message = "Please check your email";
+		    	send_email($_POST['email'], $_POST['name'], $confirmation_key, $gmail_account, $gmail_password);
+		        $message.= "Please check your email at ";
+		        $message.= $_POST['email'];
+		        $signed_up = TRUE;
 		    }
-
-		} else {
-			$error_message.= "The email you submitted is already in use";
-			$redirect_to_login = FALSE;
-		}
-
-
-
-	} else if (isset($_POST['submit']) && $_POST['password'] != $_POST['passwordagain']) {
-	    $error_message.= "passwords are not matching";
-		$redirect_to_login = FALSE;
+		} 
+	}
+	if (isset($_POST['resend'])) {
+		$signed_up = TRUE;
 	}
 
-	if ($redirect_to_login) {
-	     header("Location: login.php");
-	}
+	return info_array($error_message, $message, $signed_up);
+}
 
-	return array("error" => $error_message, "message" => $message);
+function send_email($email, $name, $confirmation_key, $gmail_account, $gmail_password) {
+	$template = file_get_contents("signup_email_confirmation_template.txt");
+	$template = str_replace('{EMAIL}', $email, $template);
+	$template = str_replace('{KEY}', $confirmation_key, $template);
+	$template = str_replace('{ADDRESS}', "http://localhost", $template);
+
+	//Send Email
+	$transport = new Swift_SmtpTransport('smtp.gmail.com', 465, 'ssl');
+	$transport->setUsername($gmail_account);
+	$transport->setPassword($gmail_password);
+	$mailer = new Swift_Mailer($transport);
+
+	$email_message = new Swift_Message("Welcome to Kevin's Store");
+	$email_message->setFrom(['freestore0202@gmail.com' => "Kevin's Store"]);
+	$email_message->setTo([$email => $name]);
+	$email_message->setBody($template, 'text/html');
+
+	$send_result = $mailer->send($email_message);
+}
+
+function resend_email($mysqli, $gmail_account, $gmail_password) {
+	if (isset($_POST['resend']) && isset($_SESSION['confirmation_email'])) {
+		$select_confirmation_key = "SELECT * FROM confirmation_key WHERE email='";
+		$select_confirmation_key.= $_SESSION['confirmation_email'];
+		$select_confirmation_key.= "' LIMIT 1";
+
+		$select_confirmation_key_result = $mysqli->query($select_confirmation_key);
+
+		$confirmation_key = $select_confirmation_key_result->fetch_array();
+		send_email($_SESSION['confirmation_email'], $_SESSION['username'], $confirmation_key['confirmation_key'], $gmail_account, $gmail_password);
+	}
+}
+
+function display_sign_up_form($status) {
+    $error_message = str_replace("{ERROR}", $status['error'], '<h6>{ERROR}</h6>');
+    $message = str_replace("{MESSAGE}", $status['message'], '<h6>{MESSAGE}</h6>');
+
+    echo($error_message);
+    echo($message);
+
+    if ($status['signed_up']) {
+    	$_SESSION['confirmation_email'] = $_POST['email'];
+    	$_SESSION['username'] = $_POST['name'];
+    	$resend_button = '<button class="btn btn-lg btn-primary btn-block" name="resend" type="submit">Resend Email</button>';
+    	echo($resend_button);
+    } else {
+
+	    $sign_up_form = '<label for="name">Your Name</label>
+	    <input type="text" class="form-control" name="name" required="" autofocus="">
+	    <label for="email">Email address</label>
+	    <input type="email" class="form-control" name="email" required="" autofocus="">
+	    <label for="password">Password</label>
+	    <input type="password" class="form-control" name="password" required="">
+	    <label for="passwordagain">Password Again</label>
+	    <input type="password" class="form-control" name="passwordagain" required="">
+	    <button id="sign-up-btn" class="btn btn-lg btn-primary btn-block"  name="submit" type="submit">Sign up</button>';
+    	echo($sign_up_form);
+    }
 }
 
 //LOGIN
