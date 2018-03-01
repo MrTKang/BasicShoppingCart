@@ -1,14 +1,7 @@
 <?php
+require("includes/functions.php");
 session_start();
-require("includes/connection.php");
-if (isset($_SESSION['user']) && isset($_POST['category'])) {
-    $insert_category = "INSERT INTO categories (name) VALUES ('";
-    $insert_category.= $_POST['name'];
-    $insert_category.= "')";
-
-    $insert_category_result = $mysqli->query($insert_category);
-}
-
+create_category($mysqli);
 ?>
 
 <html lang="en">

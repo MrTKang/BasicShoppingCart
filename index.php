@@ -1,9 +1,8 @@
 <?php
 require("includes/functions.php");
 session_start();
-
 edit_cart();
-set_login();
+$logged_in = login();
 ?>
 
 

@@ -1,5 +1,5 @@
 <?php
-require("includes/connection.php");
+require("includes/functions.php");
 session_start();
 ?>
 
@@ -16,31 +16,7 @@ session_start();
     <body >
         <div class="checkout-container">
             <form class="checkout-form" method="post" action="checkout_complete.php">
-
-            <?php 
-                if (isset($_SESSION['cart'])) {
-                    $select_products = "SELECT * FROM products WHERE product_id IN (";
-                    foreach ($_SESSION['cart'] as $product_id => $quantity) {
-                        $select_products.= $product_id;
-                        $select_products.= ", ";
-                    }
-                    $select_products = substr($select_products, 0, -2);
-                    $select_products.= ")";
-                    $select_products_result = $mysqli->query($select_products);
-                    $total_price = 0;
-                    while ($product = $select_products_result->fetch_array()) {
-                        $quantity = $_SESSION['cart'][$product['product_id']]['quantity'];
-                        $total_price+= $product['price'] * $quantity;
-            ?>
-
-                    <p><?php echo $product['name'] ?> X <?php echo $quantity ?> = $<?php echo(number_format($product['price'] * $quantity , 2, '.', ''))?></p>
-            <?php
-                    }
-            ?>
-            <p>Total Price: $<?php echo(number_format($total_price, 2, '.', '')) ?> </p>
-            <?php 
-                }
-            ?>
+                <?php display_checkout_cart($mysqli) ?>
 
                 <label>Address</label>
                 <input type="text" name="address" class="form-control" required="" autofocus="">
