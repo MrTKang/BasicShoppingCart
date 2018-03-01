@@ -2,7 +2,7 @@
 require("includes/credentials.php");
 require("includes/functions.php");
 session_start();
-sign_up_user($mysqli, $GMAIL_ACCOUNT, $GMAIL_PASSWORD);
+$messages = sign_up_user($mysqli, $GMAIL_ACCOUNT, $GMAIL_PASSWORD);
 ?>
 
 <html lang="en">
@@ -18,8 +18,8 @@ sign_up_user($mysqli, $GMAIL_ACCOUNT, $GMAIL_PASSWORD);
         <div class="signup-container">
             <form class="signup-form" method="post" action="signup.php">
                 <h1 class="h3 mb-3 font-weight-normal">Please sign up</h1>
-                <h6> <?php echo $template ?></h6>
-                <h6> <?php echo $error_message ?></h6>
+                <h6> <?php echo $messages['error'] ?></h6>
+                <h6> <?php echo $messages['message'] ?></h6>
                 <label for="name">Your Name</label>
                 <input type="text" class="form-control" name="name" required="" autofocus="">
                 <label for="email">Email address</label>

@@ -125,68 +125,84 @@ function display_cart($mysqli) {
 
 function sign_up_user($mysqli, $gmail_account, $gmail_password) {
 	$redirect_to_login = FALSE;
+	$error_message = "";
 	if (isset($_POST['submit']) && $_POST['password'] == $_POST['passwordagain']){
-	    $insert_user = "INSERT INTO users (name, email, password) VALUES ('";
-	    $insert_user.= $_POST['name'];
-	    $insert_user.= "', '";
-	    $insert_user.= $_POST['email'];
-	    $insert_user.= "', MD5('";
-	    $insert_user.= $_POST['password'];
-	    $insert_user.= "'))";
+		$select_user = "SELECT * FROM users WHERE email='";
+		$select_user.= $_POST['email'];
+		$select_user.= "'";
+		$select_user_result = $mysqli->query($select_user);
 
-	    if ($mysqli->query($insert_user)===TRUE) {
-	        $redirect_to_login = TRUE;
-	    } else {
-	        $message = $mysqli->error;
-	    }
+		if ($select_user_result->num_rows == 0) {
+		    $insert_user = "INSERT INTO users (name, email, password) VALUES ('";
+		    $insert_user.= $_POST['name'];
+		    $insert_user.= "', '";
+		    $insert_user.= $_POST['email'];
+		    $insert_user.= "', MD5('";
+		    $insert_user.= $_POST['password'];
+		    $insert_user.= "'))";
 
-	    $user_id = $mysqli->insert_id;
+		    if ($mysqli->query($insert_user)===TRUE) {
+		        $redirect_to_login = TRUE;
+		    } else {
+		        $message = $mysqli->error;
+		    }
 
-	    //Make Confirmation Key
-	    $confirmation_key = md5($_POST['name'].$_POST['email'].date("Ymd"));
-	    //Save it to database
-	    $insert_confirmation_key = "INSERT INTO confirmation_key (user_id, confirmation_key, email) VALUES (";
-	    $insert_confirmation_key.= $user_id;
-	    $insert_confirmation_key.= ", '";
-	    $insert_confirmation_key.= $confirmation_key;
-	    $insert_confirmation_key.= "', '";
-	    $insert_confirmation_key.= $_POST['email'];
-	    $insert_confirmation_key.= "')";
+		    $user_id = $mysqli->insert_id;
 
-	    $insert_confirmation_key_result = $mysqli->query($insert_confirmation_key);
-	    
-	    //Set up template
-	    if ($insert_confirmation_key_result === TRUE) {
+		    //Make Confirmation Key
+		    $confirmation_key = md5($_POST['name'].$_POST['email'].date("Ymd"));
+		    //Save it to database
+		    $insert_confirmation_key = "INSERT INTO confirmation_key (user_id, confirmation_key, email) VALUES (";
+		    $insert_confirmation_key.= $user_id;
+		    $insert_confirmation_key.= ", '";
+		    $insert_confirmation_key.= $confirmation_key;
+		    $insert_confirmation_key.= "', '";
+		    $insert_confirmation_key.= $_POST['email'];
+		    $insert_confirmation_key.= "')";
 
-	        $template = file_get_contents("signup_email_confirmation_template.txt");
-	        $template = str_replace('{EMAIL}', $_POST['email'], $template);
-	        $template = str_replace('{KEY}', $confirmation_key, $template);
-	        $template = str_replace('{ADDRESS}', "http://localhost", $template);
+		    $insert_confirmation_key_result = $mysqli->query($insert_confirmation_key);
+		    
+		    //Set up template
+		    if ($insert_confirmation_key_result === TRUE) {
 
-	        //Send Email
-	        $transport = new Swift_SmtpTransport('smtp.gmail.com', 465, 'ssl');
-	        $transport->setUsername($gmail_account);
-	        $transport->setPassword($gmail_password);
-	        $mailer = new Swift_Mailer($transport);
+		        $template = file_get_contents("signup_email_confirmation_template.txt");
+		        $template = str_replace('{EMAIL}', $_POST['email'], $template);
+		        $template = str_replace('{KEY}', $confirmation_key, $template);
+		        $template = str_replace('{ADDRESS}', "http://localhost", $template);
 
-	        $email_message = new Swift_Message("Welcome to Kevin's Store");
-	        $email_message->setFrom(['freestore0202@gmail.com' => "Kevin's Store"]);
-	        $email_message->setTo([$_POST['email'] => $_POST['name']]);
-	        $email_message->setBody($template, 'text/html');
+		        //Send Email
+		        $transport = new Swift_SmtpTransport('smtp.gmail.com', 465, 'ssl');
+		        $transport->setUsername($gmail_account);
+		        $transport->setPassword($gmail_password);
+		        $mailer = new Swift_Mailer($transport);
 
-	        $send_result = $mailer->send($email_message);
+		        $email_message = new Swift_Message("Welcome to Kevin's Store");
+		        $email_message->setFrom(['freestore0202@gmail.com' => "Kevin's Store"]);
+		        $email_message->setTo([$_POST['email'] => $_POST['name']]);
+		        $email_message->setBody($template, 'text/html');
 
-	        $message = "Please check your email";
-	    }
+		        $send_result = $mailer->send($email_message);
+
+		        $message = "Please check your email";
+		    }
+
+		} else {
+			$error_message.= "The email you submitted is already in use";
+			$redirect_to_login = FALSE;
+		}
+
 
 
 	} else if (isset($_POST['submit']) && $_POST['password'] != $_POST['passwordagain']) {
-	    $error_message = "passwords are not matching";
+	    $error_message.= "passwords are not matching";
+		$redirect_to_login = FALSE;
 	}
 
 	if ($redirect_to_login) {
 	     header("Location: login.php");
 	}
+
+	return array("error" => $error_message, "message" => $message);
 }
 
 //LOGIN
