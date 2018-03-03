@@ -27,11 +27,6 @@ if (isset($_GET["availability"]) && isset($_GET["edit_product"])) {
             <?php display_my_products($mysqli) ?>
             <a class="add-product-button btn btn-sm btn-outline-secondary"  href="#" data-toggle="modal" data-target="#exampleModal">Add Product</a>
         </div>
-
-
-
-
-
         <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
             <form action="myproducts.php" method="post" enctype="multipart/form-data">

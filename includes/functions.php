@@ -375,10 +375,12 @@ function display_my_products($mysqli) {
 	        <p class="card-text">{DESCRIPTION}</p>';
 
 	        if ($product['available'] == 1){
-	        	$product_item.= '<a href="myproducts.php?edit_product={PRODUCT_ID}&availability=0" class="card-link my-product-delete">stop selling</a></div></div>';
+	        	$product_item.= '<a href="myproducts.php?edit_product={PRODUCT_ID}&availability=0" class="card-link my-product-delete">stop selling</a>';
+	        	$product_item.= '<p class="card-link to-edit-tag"> to edit, stop selling first </p></div></div>';
 	        } else {
-	        	$product_item.= '<a href="myproducts.php?edit_product={PRODUCT_ID}&availability=1" class="card-link my-product-delete">start selling</a></div></div>';
-	        }
+	        	$product_item.= '<a href="myproducts.php?edit_product={PRODUCT_ID}&availability=1" class="card-link my-product-delete">start selling</a>';
+	       	 	$product_item.= '<a class="card-link" href="editproduct.php?product_id={PRODUCT_ID}"> edit </a></div></div>';
+	        }	        
 	        $search = array("{NAME}", "{PRICE}", "{DESCRIPTION}", "{PRODUCT_ID}");
 	        $replace = array($product['name'], $product['price'], $product['description'], $product['product_id']);
 	        $product_item = str_replace($search, $replace, $product_item);
@@ -466,6 +468,49 @@ function display_category_form($mysqli) {
         $category_options = str_replace("{NAME}", $category['name'], $category_options);
         echo($category_options);
     }
+}
+
+
+//EDITPRODUCT
+
+function edit_product($mysqli, $product_id, $product_info) {
+	$update_product = "UPDATE products SET name = '";
+	$update_product.= $product_info['name'];
+	$update_product.= "', price = ";
+	$update_product.= $product_info['price'];
+	$update_product.= ", description = '";
+	$update_product.= $product_info['description'];
+	$update_product.= "' WHERE product_id = ";
+	$update_product.= $product_id;
+
+	$update_product_result = $mysqli->query($update_product);
+}
+
+function display_edit_product_form($mysqli, $product_id) {
+	$select_product = "SELECT * FROM products WHERE product_id = ";
+	$select_product.= $product_id;
+	$select_product.= " LIMIT 1";
+
+	$select_product_result = $mysqli->query($select_product);
+
+	$product = $select_product_result->fetch_array();
+
+    $edit_product_form = '<form id="edit_product_form" class="edit-product-form" method="post" action="editproduct.php?product_id={PRODUCT_ID}">
+    <h1 class="h3 mb-3 font-weight-normal">Editing Product</h1><label for="name">Product name</label>
+    <input type="text" class="form-control" name="name" required="" autofocus="" value="{NAME}">
+    <label for="price">Price</label>
+    <input type="number" class="form-control" name="price" required="" autofocus="" value="{PRICE}">
+    <label for="description">Description</label>
+    <textarea class="form-control" form="edit_product_form" name="description" required="">{DESCRIPTION}</textarea>
+    <button id="sign-up-btn" class="btn btn-lg btn-primary btn-block"  name="edit" type="submit">Edit</button>
+    <p class="mt-5 mb-3 text-muted">© 2017-2018</p>
+    </form>';
+
+    $search = array("{PRODUCT_ID}", "{NAME}", "{PRICE}", "{DESCRIPTION}");
+    $replace = array($product_id, $product['name'], $product['price'], $product['description']);
+    $edit_product_form = str_replace($search, $replace, $edit_product_form);
+
+	echo($edit_product_form);
 }
 
 //MYCATEGORY

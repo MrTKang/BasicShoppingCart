@@ -16,7 +16,7 @@
 	height: 100%;
 }
 
-.login-container, .signup-container, .checkout-container, .product-container, .category-container{
+.login-container, .signup-container, .checkout-container, .product-container, .category-container, .edit-product-container {
 	display: inline-block;
     background-color: #f5f5f5;
     width:100%;
@@ -24,7 +24,7 @@
 }
 
 
-.checkout-form, .login-form, .signup-form, .product-form, .category-form{
+.checkout-form, .login-form, .signup-form, .product-form, .category-form, .edit-product-form {
     padding-top: 10em;
     margin-left: auto;
     margin-right: auto;
@@ -61,4 +61,9 @@
   width: 600px;
   margin-left: auto;
   margin-right: auto;
+}
+
+.to-edit-tag {
+  display: inline-block;
+  margin-bottom: 0;
 }
