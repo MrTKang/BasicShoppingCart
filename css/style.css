@@ -43,3 +43,22 @@
 .checkout-btn, .product-btn, .category-btn {
 	margin-top: 20px;
 }
+
+.my-product-name {
+}
+
+.my-product-delete {
+}
+
+.my-product-item {
+  width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.add-product-button {
+  display: block;
+  width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}

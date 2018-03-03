@@ -7,7 +7,7 @@ require_once("vendor/autoload.php");
 //PRODUCTS
 function display_products($mysqli) {
 	if (!isset($_GET['category'])) {
-		$select_products = "SELECT * FROM products ORDER BY name ASC";
+		$select_products = "SELECT * FROM products WHERE available = 1 ORDER BY name ASC";
 	} else {
 		$select_products = "SELECT products.name, products.price, products.image, products.product_id FROM products ";
 		$select_products.= "INNER JOIN category_product ";
@@ -15,7 +15,7 @@ function display_products($mysqli) {
 		$select_products.= "INNER JOIN categories ";
 		$select_products.= "ON categories.category_id = category_product.category_id WHERE categories.name = '";
 		$select_products.= $_GET['category'];
-		$select_products.= "' ORDER BY name ASC";
+		$select_products.= "' and products.available = 1 ORDER BY name ASC";
 	}
 
 	$select_products_result = $mysqli->query($select_products);
@@ -369,8 +369,19 @@ function display_my_products($mysqli) {
 	    $select_user_product_result = $mysqli->query($select_user_product);
 
 	    while ($product = $select_user_product_result->fetch_array()) {
-	        $product_item = '<p>{PRODUCT_NAME}</p>';
-	        $product_item = str_replace("{PRODUCT_NAME}", $product['name'], $product_item);
+	        $product_item = '<div class="card my-product-item"> <div class="card-body">
+	        <h6 class="card-title my-product-name">{NAME}</h6>
+	        <p class="card-subtitle mb-2 text-muted">${PRICE}</p>
+	        <p class="card-text">{DESCRIPTION}</p>';
+
+	        if ($product['available'] == 1){
+	        	$product_item.= '<a href="myproducts.php?edit_product={PRODUCT_ID}&availability=0" class="card-link my-product-delete">stop selling</a></div></div>';
+	        } else {
+	        	$product_item.= '<a href="myproducts.php?edit_product={PRODUCT_ID}&availability=1" class="card-link my-product-delete">start selling</a></div></div>';
+	        }
+	        $search = array("{NAME}", "{PRICE}", "{DESCRIPTION}", "{PRODUCT_ID}");
+	        $replace = array($product['name'], $product['price'], $product['description'], $product['product_id']);
+	        $product_item = str_replace($search, $replace, $product_item);
 	        echo($product_item);
 	    } 
 	}
@@ -436,6 +447,15 @@ function create_product($mysqli) {
 	        echo "Sorry, there was an error uploading your file.";
 	    } 
 	}
+}
+
+function set_product_availability($mysqli, $product_id, $availability){
+	$update_product = "UPDATE products SET available = ";
+	$update_product.= $availability;
+	$update_product.= " WHERE product_id = ";
+	$update_product.= $product_id;
+
+	$update_product_result = $mysqli->query($update_product);
 }
 
 function display_category_form($mysqli) {
