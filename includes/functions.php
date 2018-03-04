@@ -71,7 +71,11 @@ function edit_cart() {
 	}
 }
 
-function login() {
+function is_logged_in() {
+	if (isset($_GET['logout'])) {
+		unset($_SESSION['user']);
+		unset($_SESSION['cart']);
+	}
 	return isset($_SESSION['user']);
 }
 
@@ -284,6 +288,9 @@ function login_user($mysqli) {
 
 	        if ($login_user['password'] === md5($_POST['password']) && $login_user['email_confirmed'] == 1) {
 	            $_SESSION['user'] = $login_user;
+	            if (isset($_POST['remember_email'])) {
+	            	setcookie("login", $_POST["email"], time()+ (365 * 24 * 60 * 60));
+	            }
 	            header("Location: index.php");
 	        } else if ($login_user['password'] === md5($_POST['password']) && $login_user['email_confirmed'] == 0) {
 	            $error_message = "please confirm your email";

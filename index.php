@@ -2,7 +2,7 @@
 require("includes/functions.php");
 session_start();
 edit_cart();
-$logged_in = login();
+$logged_in = is_logged_in();
 ?>
 
 
@@ -45,7 +45,7 @@ $logged_in = login();
 						<?php 
 						if ($logged_in) {
 						?>
-						<a class="btn btn-sm btn-outline-secondary" href="login">Log out</a>
+						<a class="btn btn-sm btn-outline-secondary" href="index.php?logout=true">Log out</a>
 						<?php
 						} else {
 						?>

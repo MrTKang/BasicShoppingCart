@@ -3,6 +3,11 @@ require("includes/functions.php");
 session_start();
 login_user($mysqli);
 confirm_user_email($mysqli);
+
+$user_email = "";
+if (isset($_COOKIE['login'])) {
+    $user_email = $_COOKIE['login'];
+}
 ?>
 
 <!-- TODO: reCaptcha -->
@@ -21,12 +26,12 @@ confirm_user_email($mysqli);
             <form class="login-form" method="post" action="login.php">
                 <h1><?php echo $error_message ?></h1>
                 <label>Email</label>
-                <input type="email" name="email" class="form-control" required="" autofocus="">
+                <input type="email" name="email" class="form-control" required="" value="<?php echo $user_email ?>" autofocus="">
                 <label>Password</label>
                 <input type="password" name="password" class="form-control" required="">
                 <div class="checkbox mb-3">
                     <label>
-                        <input type="checkbox" value="remember-me"> Remember me
+                        <input type="checkbox" name="remember_email" value="remember_email"> Remember me
                     </label>
                 </div>
                 <button class="btn btn-lg btn-primary btn-block" name="submit" >Sign in</button>
