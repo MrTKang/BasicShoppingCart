@@ -525,6 +525,91 @@ function create_category($mysqli) {
 	}
 }
 
+function display_category_list($mysqli) {
+	$select_categories = "SELECT * FROM categories";
+	$select_categories_result = $mysqli->query($select_categories);
+
+	while ($category = $select_categories_result->fetch_array()) {
+		$category_item = '<div class="card category-item"><div class="card-body">
+	        <h6 class="card-title">{NAME}</h6>
+	        <p class="card-text">{PRODUCTS}</p>';
+
+		$select_products = "SELECT products.name FROM products ";
+		$select_products.= "INNER JOIN category_product ";
+		$select_products.= "ON category_product.product_id = products.product_id ";
+		$select_products.= "INNER JOIN categories ";
+		$select_products.= "ON categories.category_id = category_product.category_id WHERE categories.name = '";
+		$select_products.= $category['name'];
+		$select_products.= "'";
+
+		$select_products_result = $mysqli->query($select_products);
+		$products = "";
+		while ($product = $select_products_result->fetch_array()) {
+			$products.= $product['name'];
+			$products.= ", ";
+		}
+
+		$products = substr($products, 0, -2);
+
+        if ($category['active'] == 1){
+        	$category_item.= '<a href="mycategories.php?edit_category={CATEGORY_ID}&active=0" class="card-link">deactivate</a>';
+        	$category_item.= '<p class="card-link to-edit-tag"> to edit, deactivate first </p></div></div>';
+        } else {
+        	$category_item.= '<a href="mycategories.php?edit_category={CATEGORY_ID}&active=1" class="card-link">activate</a>';
+       	 	$category_item.= '<a class="card-link" href="editcategory.php?category_id={CATEGORY_ID}"> edit </a></div></div>';
+        }	    
+
+	    $search = array("{NAME}", "{PRODUCTS}", "{CATEGORY_ID}");
+	    $replace = array($category['name'], $products, $category['category_id']);
+	    $category_item = str_replace($search, $replace, $category_item);
+
+	    echo($category_item);
+	}
+}
+
+
+function set_category_activity($mysqli, $category_id, $activity){
+	$update_category = "UPDATE categories SET active = ";
+	$update_category.= $activity;
+	$update_category.= " WHERE category_id = ";
+	$update_category.= $category_id;
+
+	$update_category_result = $mysqli->query($update_category);
+
+}
+
+function display_edit_category_form($mysqli, $category_id) {
+	$select_category = "SELECT * FROM categories WHERE category_id = ";
+	$select_category.= $category_id;
+	$select_category.= " LIMIT 1";
+
+	$select_category_result = $mysqli->query($select_category);
+
+	$category = $select_category_result->fetch_array();
+
+    $edit_category_form = '<form id="edit_category_form" class="edit-category-form" method="post" action="editcategory.php?category_id={CATEGORY_ID}">
+    <h1 class="h3 mb-3 font-weight-normal">Editing category</h1><label for="name">Category name</label>
+    <input type="text" class="form-control" name="name" required="" autofocus="" value="{NAME}">
+    <button id="sign-up-btn" class="btn btn-lg btn-primary btn-block"  name="edit" type="submit">Edit</button>
+    <p class="mt-5 mb-3 text-muted">© 2017-2018</p>
+    </form>';
+
+    $search = array("{CATEGORY_ID}", "{NAME}");
+    $replace = array($category_id, $category['name']);
+    $edit_category_form = str_replace($search, $replace, $edit_category_form);
+
+	echo($edit_category_form);
+}
+
+function edit_category($mysqli, $category_id, $info) {
+	$update_category = "UPDATE categories SET name ='";
+	$update_category.= $info['name'];
+	$update_category.= "' WHERE category_id = ";
+	$update_category.= $category_id;
+
+	$update_category_result = $mysqli->query($update_category);
+}
+
 //CHECKOUT
 
 function display_checkout_cart($mysqli) {

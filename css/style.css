@@ -16,7 +16,13 @@
 	height: 100%;
 }
 
-.login-container, .signup-container, .checkout-container, .product-container, .category-container, .edit-product-container {
+.login-container, 
+.signup-container, 
+.checkout-container, 
+.product-container, 
+.category-container, 
+.edit-product-container, 
+.edit-category-container {
 	display: inline-block;
     background-color: #f5f5f5;
     width:100%;
@@ -24,8 +30,15 @@
 }
 
 
-.checkout-form, .login-form, .signup-form, .product-form, .category-form, .edit-product-form {
+.checkout-form, .login-form, .signup-form, .product-form, .edit-product-form, .edit-category-form {
     padding-top: 10em;
+    margin-left: auto;
+    margin-right: auto;
+    width: 300px;
+}
+
+.category-form {
+    padding-top: 1em;
     margin-left: auto;
     margin-right: auto;
     width: 300px;
@@ -66,4 +79,10 @@
 .to-edit-tag {
   display: inline-block;
   margin-bottom: 0;
+}
+
+.category-item {
+    margin-left: auto;
+    margin-right: auto;
+    width: 400px;
 }
