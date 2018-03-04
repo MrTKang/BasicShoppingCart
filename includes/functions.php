@@ -123,68 +123,84 @@ function display_cart($mysqli) {
 
 //SIGNUP
 
-function info_array($message, $error, $signed_up){
-	return array('message' => $message, 'error' => $error, 'signed_up' => $signed_up);
-}
-
 function sign_up_user($mysqli, $gmail_account, $gmail_password) {
 	$signed_up = FALSE;
 	$error_message = "";
 	$message = "";
 
 	if (isset($_POST['submit']) && $_POST['password'] != $_POST['passwordagain']) {
-	    return info_array("could not process", "passwords are not matching", FALSE);
+	    return array('message' => "could not process", 
+	    	'error' => "passwords are not matching",
+	    	'signed_up' => FALSE);
 
 	} else if (isset($_POST['submit']) && $_POST['password'] == $_POST['passwordagain']){
-		$select_user = "SELECT * FROM users WHERE email='";
-		$select_user.= $_POST['email'];
-		$select_user.= "'";
-		$select_user_result = $mysqli->query($select_user);
 
-		if ($select_user_result->num_rows != 0){
-	    	return info_array("could not process", "The email you submitted is already in use", FALSE);
+	    if (strlen($_POST['password']) < 8) {
+	        $error_message.= "Your Password Must Contain At Least 8 Characters!";
+	    }
+	    else if (!preg_match("#[0-9]+#",$_POST['password'])) {
+	        $error_message.= "Your Password Must Contain At Least 1 Number!";
+	    }
+	    else if (!preg_match("#[A-Z]+#",$_POST['password'])) {
+	        $error_message.= "Your Password Must Contain At Least 1 Capital Letter!";
+	    }
+	    else if (!preg_match("#[a-z]+#",$_POST['password'])) {
+	        $error_message.= "Your Password Must Contain At Least 1 Lowercase Letter!";
+	    } else {
+			$select_user = "SELECT * FROM users WHERE email='";
+			$select_user.= $_POST['email'];
+			$select_user.= "'";
+			$select_user_result = $mysqli->query($select_user);
 
-		} else {
-		    $insert_user = "INSERT INTO users (name, email, password) VALUES ('";
-		    $insert_user.= $_POST['name'];
-		    $insert_user.= "', '";
-		    $insert_user.= $_POST['email'];
-		    $insert_user.= "', MD5('";
-		    $insert_user.= $_POST['password'];
-		    $insert_user.= "'))";
+			if ($select_user_result->num_rows != 0){
+		    	return info_array("could not process", "The email you submitted is already in use", FALSE);
 
-		    if ($mysqli->query($insert_user)!==TRUE) {
-	    		return info_array("could not process", $mysqli->error, FALSE);	    		
-		    }
-		    $user_id = $mysqli->insert_id;
+			} else {
+			    $insert_user = "INSERT INTO users (name, email, password) VALUES ('";
+			    $insert_user.= $_POST['name'];
+			    $insert_user.= "', '";
+			    $insert_user.= $_POST['email'];
+			    $insert_user.= "', MD5('";
+			    $insert_user.= $_POST['password'];
+			    $insert_user.= "'))";
 
-		    //Make Confirmation Key
-		    $confirmation_key = md5($_POST['name'].$_POST['email'].date("Ymd"));
-		    //Save it to database
-		    $insert_confirmation_key = "INSERT INTO confirmation_key (user_id, confirmation_key, email) VALUES (";
-		    $insert_confirmation_key.= $user_id;
-		    $insert_confirmation_key.= ", '";
-		    $insert_confirmation_key.= $confirmation_key;
-		    $insert_confirmation_key.= "', '";
-		    $insert_confirmation_key.= $_POST['email'];
-		    $insert_confirmation_key.= "')";
+			    if ($mysqli->query($insert_user)!==TRUE) {
+		    		return info_array("could not process", $mysqli->error, FALSE);	    		
+			    }
+			    $user_id = $mysqli->insert_id;
 
-		    $insert_confirmation_key_result = $mysqli->query($insert_confirmation_key);
-		    
-		    //Set up template
-		    if ($insert_confirmation_key_result === TRUE) {
-		    	send_email($_POST['email'], $_POST['name'], $confirmation_key, $gmail_account, $gmail_password);
-		        $message.= "Please check your email at ";
-		        $message.= $_POST['email'];
-		        $signed_up = TRUE;
-		    }
-		} 
+			    //Make Confirmation Key
+			    $confirmation_key = md5($_POST['name'].$_POST['email'].date("Ymd"));
+			    //Save it to database
+			    $insert_confirmation_key = "INSERT INTO confirmation_key (user_id, confirmation_key, email) VALUES (";
+			    $insert_confirmation_key.= $user_id;
+			    $insert_confirmation_key.= ", '";
+			    $insert_confirmation_key.= $confirmation_key;
+			    $insert_confirmation_key.= "', '";
+			    $insert_confirmation_key.= $_POST['email'];
+			    $insert_confirmation_key.= "')";
+
+			    $insert_confirmation_key_result = $mysqli->query($insert_confirmation_key);
+			    
+			    //Set up template
+			    if ($insert_confirmation_key_result === TRUE) {
+			    	send_email($_POST['email'], $_POST['name'], $confirmation_key, $gmail_account, $gmail_password);
+			        $message.= "Please check your email at ";
+			        $message.= $_POST['email'];
+			        $signed_up = TRUE;
+			    }
+			} 
+		}
 	}
 	if (isset($_POST['resend'])) {
 		$signed_up = TRUE;
 	}
 
-	return info_array($error_message, $message, $signed_up);
+	return array('message' => $message, 
+    	'error' => $error_message,
+		'signed_up' => $signed_up,
+		'name' => $_POST['name'],
+		'email' => $_POST['email']);
 }
 
 function send_email($email, $name, $confirmation_key, $gmail_account, $gmail_password) {
@@ -233,16 +249,23 @@ function display_sign_up_form($status) {
     	$resend_button = '<button class="btn btn-lg btn-primary btn-block" name="resend" type="submit">Resend Email</button>';
     	echo($resend_button);
     } else {
-
 	    $sign_up_form = '<label for="name">Your Name</label>
-	    <input type="text" class="form-control" name="name" required="" autofocus="">
+	    <input type="text" class="form-control" name="name" required="" value="{NAME}" autofocus="">
 	    <label for="email">Email address</label>
-	    <input type="email" class="form-control" name="email" required="" autofocus="">
+	    <input type="email" class="form-control" name="email" required="" value="{EMAIL}" autofocus="">
 	    <label for="password">Password</label>
 	    <input type="password" class="form-control" name="password" required="">
 	    <label for="passwordagain">Password Again</label>
 	    <input type="password" class="form-control" name="passwordagain" required="">
 	    <button id="sign-up-btn" class="btn btn-lg btn-primary btn-block"  name="submit" type="submit">Sign up</button>';
+
+	    $search = array("{NAME}", "{EMAIL}");
+	    $replace = array("", "");
+	    if (isset($status['name']) && isset($status['email'])) {
+	    	$replace = array($status['name'], $status['email']);
+	    }
+	    $sign_up_form = str_replace($search, $replace, $sign_up_form);
+
     	echo($sign_up_form);
     }
 }
