@@ -680,4 +680,29 @@ function complete_checkout($mysqli) {
 	}
 }
 
+//PERMISSIONS
+
+function has_permissions($user_permissions, $permissions) {
+	$permission_check = true;	
+	foreach ($permissions as $permission) {
+		$permission_check&= $user_permissions && $permission;
+	}
+	return $permission_check;
+}
+
+function owns_product($mysqli, $user_id, $product_id) {
+	$select_user_product = "SELECT * FROM user_product WHERE user_id = ";
+	$select_user_product.= $user_id;
+	$select_user_product.= " AND product_id = ";
+	$select_user_product.= $product_id;
+
+	$select_user_product_result = $mysqli->query($select_user_product);
+	return ($select_user_product_result->num_rows == 1);
+}
+
+function can_edit_product($mysqli, $user, $product_id) {
+	return (has_permissions($user['permisssions'], array(4)) || 
+		(has_permissions($user['permissions'], array(16)) && owns_product($mysqli, $user['user_id'], $product_id)));
+}
+
 ?>

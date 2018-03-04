@@ -1,9 +1,14 @@
 <?php
 require("includes/functions.php");
 session_start();
-create_category($mysqli);
 
-if (isset($_GET['edit_category']) && isset($_GET['active'])) {
+if (has_permissions($_SESSION['user']['permissions'], array(32))) {
+    create_category($mysqli);
+}
+
+if (has_permissions($_SESSION['user']['permissions'], array(128)) &&
+ isset($_GET['edit_category']) && 
+ isset($_GET['active'])) {
     set_category_activity($mysqli, $_GET['edit_category'], $_GET['active']);
 }
 

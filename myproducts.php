@@ -1,9 +1,13 @@
 <?php
 require("includes/functions.php");
 session_start();
-create_product($mysqli);
 
-if (isset($_GET["availability"]) && isset($_GET["edit_product"])) {
+if (has_permissions($_SESSION['user']['permissions'], array(1))) {
+    create_product($mysqli);
+}
+
+if (has_permissions($_SESSION['user']['permissions'], array(16)) 
+    && isset($_GET["availability"]) && isset($_GET["edit_product"])) {
     set_product_availability($mysqli, $_GET["edit_product"], $_GET["availability"]);
 }
 
