@@ -95,3 +95,7 @@
     margin-right: auto;
     width: 400px;
 }
+
+.checkout-link {
+  display: block;
+}

@@ -336,9 +336,11 @@ function confirm_user_email($mysqli) {
 function display_my_checkouts($mysqli) {
 
     if (isset($_SESSION['user'])) {
-        $select_user_checkouts = "SELECT user_checkout.checkout_id, checkouts.created_at FROM user_checkout ";
+        $select_user_checkouts = "SELECT user_checkout.checkout_id, checkouts.created_at, checkouts.location, shipment_status.shipment_status FROM user_checkout ";
         $select_user_checkouts.= "INNER JOIN checkouts ";
         $select_user_checkouts.= "ON checkouts.checkout_id = user_checkout.checkout_id ";
+        $select_user_checkouts.= "INNER JOIN shipment_status ";
+        $select_user_checkouts.= "ON shipment_status.shipment_status_id = checkouts.shipment_status_id ";
         $select_user_checkouts.= "WHERE user_checkout.user_id=";
         $select_user_checkouts.= $_SESSION['user']['user_id'];
 
@@ -352,34 +354,38 @@ function display_my_checkouts($mysqli) {
             $select_products.= $checkout['checkout_id'];
 
             $select_products_result = $mysqli->query($select_products);
+
         	$checkout_card = '<div class="card">
-            <div class="card-header">
-            	{CREATED_AT}
-            </div>
             <div class="card-body">
-            	<blockquote class="blockquote mb-0">
-            		{PRODUCTS}
-            	</blockquote>
+            	<h5 class="card-title">Checked out at {CREATED_AT}</h6>
+            	<h6 class="card-subtitle mb-2 text-muted">{SHIPMENT_STATUS}</h6>
+            	{PRODUCTS}
         	</div>';
+
+        	$shipment_status = $checkout['shipment_status'];
+        	if ($checkout['location']) {
+	        	$shipment_status.= " at ";
+	        	$shipment_status.= $checkout['location'];
+        	}
 
         	$product_items = "";
         	$total_price = 0;
             while ($product = $select_products_result->fetch_array()) {
                 $product_price = number_format($product['price'] * $product['quantity'], 2, '.', '');
                 $total_price+= $product_price;
-                $product_item = '<p> {PRODUCT_NAME} x {PRODUCT_QUANTITY} = ${PRODUCT_PRICE}</p>';
+                $product_item = '<p class="card-text"> {PRODUCT_NAME} x {PRODUCT_QUANTITY} = ${PRODUCT_PRICE}</p>';
                 $product_search = array("{PRODUCT_NAME}", "{PRODUCT_QUANTITY}", "{PRODUCT_PRICE}");
                 $product_replace = array($product['name'], $product['quantity'], $product_price);
                 $product_item = str_replace($product_search, $product_replace, $product_item);
 
                 $product_items.= $product_item;
             }
-            $checkout_price = '<p>Total Price: ${TOTAL_PRICE}</p>';
+            $checkout_price = '<p class="card-text">Total Price: ${TOTAL_PRICE}</p>';
             $checkout_price = str_replace("{TOTAL_PRICE}", number_format($total_price, 2, '.', ''), $checkout_price);
             $product_items.= $checkout_price;
 
-            $checkout_search = array("{CREATED_AT}", "{PRODUCTS}");
-            $checkout_replace = array($checkout['created_at'], $product_items);
+            $checkout_search = array("{CREATED_AT}", "{SHIPMENT_STATUS}", "{PRODUCTS}");
+            $checkout_replace = array($checkout['created_at'], $shipment_status, $product_items);
             $checkout_card = str_replace($checkout_search, $checkout_replace, $checkout_card);
             echo($checkout_card);
         }
@@ -675,11 +681,11 @@ function display_checkout_cart($mysqli) {
 function complete_checkout($mysqli) {
 	if (isset($_POST['checkout']) && isset($_SESSION['user'])) {
 
-	    $insert_checkout = "INSERT INTO checkouts (address, postal_code) VALUES ('";
+	    $insert_checkout = "INSERT INTO checkouts (address, postal_code, shipment_status_id, location) VALUES ('";
 	    $insert_checkout.= $_POST['address'];
 	    $insert_checkout.= "', '";
 	    $insert_checkout.= $_POST['postalcode'];
-	    $insert_checkout.= "')";
+	    $insert_checkout.= "', 0, 'my store' )";
 	    $insert_checkout_result = $mysqli->query($insert_checkout);
 
 	    $checkout_id = $mysqli->insert_id;
@@ -718,9 +724,33 @@ function display_user_list($mysqli) {
 	$select_user_result = $mysqli->query($select_user);
 
 	while ($user = $select_user_result->fetch_array()) {
+		$select_user_checkouts = "SELECT * FROM user_checkout 
+									INNER JOIN checkouts 
+									ON user_checkout.checkout_id = checkouts.checkout_id 
+									INNER JOIN shipment_status
+									ON checkouts.shipment_status_id = shipment_status.shipment_status_id
+									WHERE user_checkout.user_id = ";
+		$select_user_checkouts.= $user['user_id'];
+
+		$select_user_checkouts_result = $mysqli->query($select_user_checkouts);
+
 		$user_item = '<div class="card user-item"><div class="card-body">
 	        <h6 class="card-title">{NAME}</h6>';
 		$user_item = str_replace("{NAME}", $user['name'], $user_item);
+
+		while ($checkout = $select_user_checkouts_result->fetch_array()) {
+			$checkout_link = '<a href="editcheckout?checkout_id={CHECKOUT_ID}" class="card-link checkout-link"class="card-text">{CHECKOUT_INFO}</a>';
+			$checkout_info = $checkout['created_at'];
+			$checkout_info.= ", ";
+			$checkout_info.= $checkout['shipment_status'];
+			if ($checkout['location']) {
+				$checkout_info.= " at ";
+				$checkout_info.= $checkout['location'];	
+			}
+			$checkout_link = str_replace("{CHECKOUT_INFO}", $checkout_info, $checkout_link);
+			$checkout_link = str_replace("{CHECKOUT_ID}", $checkout['checkout_id'], $checkout_link);
+			$user_item.= $checkout_link;
+		}
 
         if ($user['active'] == 1){
         	$user_item.= '<a href="myusers.php?edit_user={USER_ID}&active=0" class="card-link">deactivate</a>';
@@ -864,6 +894,77 @@ function edit_user($mysqli, $user_id, $info) {
 	$update_user.= $user_id;
 
 	$update_user_result = $mysqli->query($update_user);
+}
+
+//EDITCHECKOUTS
+
+function display_edit_checkout_form($mysqli, $checkout_id) {
+	$select_checkouts = "SELECT * FROM checkouts
+							INNER JOIN shipment_status 
+							ON checkouts.shipment_status_id = shipment_status.shipment_status_id
+							WHERE checkouts.checkout_id =";
+	$select_checkouts.= $checkout_id;
+
+	$select_checkouts_result = $mysqli->query($select_checkouts);
+
+	$checkout = $select_checkouts_result->fetch_array();
+
+    $edit_checkout_form = '<form id="edit_checkout_form" class="edit-product-form" method="post" action="editcheckout.php?checkout_id={CHECKOUT_ID}">
+    <h1 class="h3 mb-3 font-weight-normal">Editing Checkout</h1>
+    <label for="ship_by">Ship by</label>
+    <input type="datetime-local" class="form-control" name="ship_by" autofocus="" value="{SHIP_BY}">
+    <label for="address">Address</label>
+    <input type="text" class="form-control" name="address" required="" autofocus="" value="{ADDRESS}">
+    <label for="postal_code">Postal code</label>
+    <input type="text" class="form-control" name="postal_code" required="" autofocus="" value="{POSTAL_CODE}">
+    <label for="shipment_status_id">Shipment status</label>
+    <select class="form-control" name="shipment_status_id">
+    	<option value=0 {PREPARING}>PREPARING SHIPMENT</option>
+    	<option value=1 {READY}>READY TO BE SHIPPED</option>
+    	<option value=2 {SHIPPING}>SHIPPING</option>
+    	<option value=3 {SHIPPED}>SHIPPED</option>
+    </select>
+    <label for="location">Location</label>
+    <input type="text" class="form-control" name="location" required="" autofocus="" value="{LOCATION}">
+    <button id="sign-up-btn" class="btn btn-lg btn-primary btn-block"  name="edit_checkout" type="submit">Edit</button>
+    <p class="mt-5 mb-3 text-muted">© 2017-2018</p>
+    </form>';
+
+    $statuses = array("","","","");
+    $statuses[$checkout['shipment_status_id']] = "selected";
+
+    $search = array("{CHECKOUT_ID}", "{SHIP_BY}", "{ADDRESS}", 
+    	"{PREPARING}", "{READY}", "{SHIPPING}", "{SHIPPED}", 
+    	"{POSTAL_CODE}", "{LOCATION}");
+    $ship_by = new DateTime($checkout['ship_by']);
+    $replace = array($checkout_id, $ship_by->format('Y-m-d\Th:m:00'), $checkout['address'], 
+    	$statuses[0], $statuses[1], $statuses[2], $statuses[3],
+    	$checkout['postal_code'], $checkout['location']);
+    $edit_checkout_form = str_replace($search, $replace, $edit_checkout_form);
+
+	echo($edit_checkout_form);
+
+}
+
+function edit_checkout($mysqli, $checkout_id, $info) {
+	$update_checkout = "UPDATE checkouts SET ship_by = '";
+
+	$ship_by_datetime = new DateTime($info['ship_by']);
+
+	$update_checkout.= $ship_by_datetime->format('Y-m-d H:i:s');
+	$update_checkout.= "', address = '";
+	$update_checkout.= $info['address'];
+	$update_checkout.= "', postal_code = '";
+	$update_checkout.= $info['postal_code'];
+	$update_checkout.= "', shipment_status_id = ";
+	$update_checkout.= $info['shipment_status_id'];
+	$update_checkout.= ", location = '";
+	$update_checkout.= $info['location'];
+	$update_checkout.= "' WHERE checkout_id = ";
+	$update_checkout.= $checkout_id;
+
+	$update_checkout_result = $mysqli->query($update_checkout);
+
 }
 
 //PERMISSIONS
