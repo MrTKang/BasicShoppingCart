@@ -21,7 +21,7 @@ if (isset($_COOKIE['login'])) {
         <link href="css/style.css" rel="stylesheet">
     </head>
 
-    <body >
+    <body>
         <div class="login-container">
             <form class="login-form" method="post" action="login.php">
                 <h1><?php echo $error_message ?></h1>

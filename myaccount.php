@@ -21,5 +21,6 @@
         </div>
         <a href="myproducts">my products</a>
         <a href="mycategories">my categories</a>
+        <a href="myusers">my users</a>
     </body>
 </html>

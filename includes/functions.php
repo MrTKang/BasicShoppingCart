@@ -710,6 +710,162 @@ function complete_checkout($mysqli) {
 	}
 }
 
+//MYUSERS
+
+function display_user_list($mysqli) {
+	$select_user = "SELECT * FROM users";
+
+	$select_user_result = $mysqli->query($select_user);
+
+	while ($user = $select_user_result->fetch_array()) {
+		$user_item = '<div class="card user-item"><div class="card-body">
+	        <h6 class="card-title">{NAME}</h6>';
+		$user_item = str_replace("{NAME}", $user['name'], $user_item);
+
+        if ($user['active'] == 1){
+        	$user_item.= '<a href="myusers.php?edit_user={USER_ID}&active=0" class="card-link">deactivate</a>';
+        	$user_item.= '<p class="card-link to-edit-tag"> to edit, deactivate first </p></div></div>';
+        } else {
+        	$user_item.= '<a href="myusers.php?edit_user={USER_ID}&active=1" class="card-link">activate</a>';
+       	 	$user_item.= '<a class="card-link" href="edituser.php?user_id={USER_ID}"> edit </a></div></div>';
+        }	    
+
+	    $search = array("{NAME}", "{USER_ID}");
+	    $replace = array($user['name'], $user['user_id']);
+	    $user_item = str_replace($search, $replace, $user_item);
+
+	    echo($user_item);
+	}
+}
+
+
+function set_user_activity($mysqli, $user_id, $activity){
+	$update_user = "UPDATE users SET active = ";
+	$update_user.= $activity;
+	$update_user.= " WHERE user_id = ";
+	$update_user.= $user_id;
+
+	$update_user_result = $mysqli->query($update_user);
+}
+
+
+//EDITUSER
+
+function check_permission_bit($permission_bit, $user_permission) {
+	return ($permission_bit & $user_permission ? "checked" : ""); 
+}
+
+function display_edit_user_form($mysqli, $user_id) {
+
+	$select_user = "SELECT * FROM users WHERE user_id = ";
+	$select_user.= $user_id;
+	$select_user.= " LIMIT 1";
+
+	$select_user_result = $mysqli->query($select_user);
+
+	$user = $select_user_result->fetch_array();
+
+	$add_products = check_permission_bit(1, $user['permissions']);
+	$delete_products = check_permission_bit(2, $user['permissions']);
+	$edit_products = check_permission_bit(4, $user['permissions']);
+	$delete_own_products = check_permission_bit(8, $user['permissions']);
+	$edit_own_products = check_permission_bit(16, $user['permissions']);
+	$add_categories = check_permission_bit(32, $user['permissions']);
+	$delete_categories = check_permission_bit(64, $user['permissions']);
+	$edit_categories = check_permission_bit(128, $user['permissions']);
+	$add_users = check_permission_bit(256, $user['permissions']);
+	$delete_users = check_permission_bit(512, $user['permissions']);
+	$edit_users = check_permission_bit(1024, $user['permissions']);
+
+
+    $edit_user_form = '<form id="edit_user_form" class="edit-user-form" method="post" action="edituser.php?user_id={USER_ID}">
+    <h1 class="h3 mb-3 font-weight-normal">Editing User</h1>
+    <label for="name">User name</label>
+    <input type="text" class="form-control" name="name" required="" autofocus="" value="{NAME}">
+    <label for="name">Email</label>
+    <input type="text" class="form-control" name="email" required="" autofocus="" value="{EMAIL}">
+	<div class="form-check">
+		<input class="form-check-input" type="checkbox" name="permissions" value=1 {ADD_PRODUCTS}>
+		<label class="form-check-label" for="add-products">ADD PRODUCTS</label>
+	</div>
+	<div class="form-check">
+		<input class="form-check-input" type="checkbox" name="permissions[]" value=2 {DELETE_PRODUCTS}>
+		<label class="form-check-label" for="delete-products">DELETE PRODUCTS</label>
+	</div>
+	<div class="form-check">
+  		<input class="form-check-input" type="checkbox" name="permissions[]" value=4 {EDIT_PRODUCTS}>
+  		<label class="form-check-label" for="edit-products">EDIT PRODUCTS</label>
+	</div>
+	<div class="form-check">
+		<input class="form-check-input" type="checkbox" name="permissions[]" value=8 {DELETE_OWN_PRODUCTS}> 
+		<label class="form-check-label" for="delete-own-products">DELETE OWN PRODUCTS</label>
+	</div>
+	<div class="form-check">
+		<input class="form-check-input" type="checkbox" name="permissions[]" value=16 {EDIT_OWN_PRODUCTS}>
+		<label class="form-check-label" for="edit-own-products">EDIT OWN PRODUCTS</label>
+	</div>
+	<div class="form-check">
+  		<input class="form-check-input" type="checkbox" name="permissions[]" value==32 {ADD_CATEGORIES}>
+  		<label class="form-check-label" for="add-category">ADD CATEGORY</label>
+	</div>
+	<div class="form-check">
+		<input class="form-check-input" type="checkbox" name="permissions[]" value=64 {DELETE_CATEGORIES}>
+		<label class="form-check-label" for="delete-category">DELETE CATEGORY</label>
+	</div>
+	<div class="form-check">
+		<input class="form-check-input" type="checkbox" name="permissions[]" value=128 {EDIT_CATEGORIES}>
+		<label class="form-check-label" for="edit-category">EDIT CATEGORY</label>
+	</div>
+	<div class="form-check">
+  		<input class="form-check-input" type="checkbox" name="permissions[]" value=256 {ADD_USERS}>
+  		<label class="form-check-label" for="add-users">ADD USERS</label>
+	</div>
+	<div class="form-check">
+		<input class="form-check-input" type="checkbox" name="permissions[]" value=512 {DELETE_USERS}>
+		<label class="form-check-label" for="delete-users">DELETE USERS</label>
+	</div>
+	<div class="form-check">
+  		<input class="form-check-input" type="checkbox" name="permissions[]" value=1024 {EDIT_USERS}>
+  		<label class="form-check-label" for="edit-users">EDIT USERS</label>
+	</div>
+    <button id="sign-up-btn" class="btn btn-lg btn-primary btn-block"  name="edit" type="submit">Edit</button>
+    <p class="mt-5 mb-3 text-muted">© 2017-2018</p>
+    </form>';
+
+    $search = array("{USER_ID}", "{NAME}", "{EMAIL}", 
+    	"{ADD_PRODUCTS}", "{DELETE_PRODUCTS}", "{EDIT_PRODUCTS}", "{DELETE_OWN_PRODUCTS}", 
+    	"{EDIT_OWN_PRODUCTS}", "{ADD_CATEGORIES}", "{DELETE_CATEGORIES}", "{EDIT_CATEGORIES}", 
+    	"{ADD_USERS}", "{DELETE_USERS}", "{EDIT_USERS}");
+    $replace = array($user_id, $user['name'], $user['email'], $add_products, $delete_products, 
+    	$edit_products, $delete_own_products, $edit_own_products, $add_categories, 
+    	$delete_categories, $edit_categories, $add_users, $delete_users, $edit_users);
+    $edit_user_form = str_replace($search, $replace, $edit_user_form);
+
+	echo($edit_user_form);
+}
+
+
+
+function edit_user($mysqli, $user_id, $info) {
+	$update_user = "UPDATE users SET name = '";
+	$update_user.= $info['name'];
+	$update_user.= "', email = '";
+	$update_user.= $info['email'];
+	$update_user.= "', permissions = ";
+
+	$permission = 0;
+
+	foreach ($info['permissions'] as $permission_bit) {
+		$permission += $permission_bit;
+	}
+
+	$update_user.= $permission;
+	$update_user.= " WHERE user_id = ";
+	$update_user.= $user_id;
+
+	$update_user_result = $mysqli->query($update_user);
+}
+
 //PERMISSIONS
 
 function has_permissions($user_permissions, $permissions) {
