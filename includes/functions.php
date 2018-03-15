@@ -394,6 +394,55 @@ function display_my_checkouts($mysqli) {
 
 //MYPRODUCTS
 
+function add_inventory($mysqli, $product_id, $quantity) {
+	$select_product = "SELECT * FROM products WHERE product_id = ";
+	$select_product.= $product_id;
+	$select_product_result = $mysqli->query($select_product);
+
+	$product = $select_product_result->fetch_array();
+
+	$update_product = "UPDATE products SET inventory = ";
+	$update_product.= $product['inventory'] + $quantity;
+	$update_product.= " WHERE product_id = ";
+	$update_product.= $product_id;
+
+	$update_product_result = $mysqli->query($update_product);
+}
+
+function display_product($product) {
+	        $product_item = '<div class="card my-product-item"> <div class="card-body">
+	        <h6 class="card-title my-product-name">{NAME}</h6>
+	        <p class="card-subtitle mb-2 text-muted">${PRICE}</p>
+	        <form id="edit_inventory_form" class="edit-inventory-form" method="post" action="myproducts.php?product_id={PRODUCT_ID}"> 
+	        	<p class="card-subtitle mb-2 text-muted inventory-text">{INVENTORY} in inventory</p>
+	        	<input class="inventory-input form-control" type="number" name="inventory" value=0>
+	        	<button class="inventory-btn btn btn-lg btn-primary btn-block"  name="add_inventory" type="submit">Add</button>
+	        </form>
+	        <p class="card-text">{DESCRIPTION}</p>';
+
+	        if ($product['available'] == 1){
+	        	$product_item.= '<a href="myproducts.php?edit_product={PRODUCT_ID}&availability=0" class="card-link my-product-delete">stop selling</a>';
+	        	$product_item.= '<p class="card-link to-edit-tag"> to edit, stop selling first </p></div></div>';
+	        } else {
+	        	$product_item.= '<a href="myproducts.php?edit_product={PRODUCT_ID}&availability=1" class="card-link my-product-delete">start selling</a>';
+	       	 	$product_item.= '<a class="card-link" href="editproduct.php?product_id={PRODUCT_ID}"> edit </a></div></div>';
+	        }	        
+	        $search = array("{NAME}", "{PRICE}", "{INVENTORY}", "{DESCRIPTION}", "{PRODUCT_ID}");
+	        $replace = array($product['name'], $product['price'], $product['inventory'], $product['description'], $product['product_id']);
+	        $product_item = str_replace($search, $replace, $product_item);
+	        echo($product_item);
+}
+
+function display_all_products($mysqli) {
+	if (isset($_SESSION['user'])) {
+		$select_products = "SELECT * FROM products";
+		$select_products_result = $mysqli->query($select_products);
+		while ($product = $select_products_result->fetch_array()) {
+			display_product($product);
+		}
+	}
+}
+
 function display_my_products($mysqli) {
 	if (isset($_SESSION['user'])) {
 	    $select_user_product = "SELECT * FROM user_product ";
@@ -405,22 +454,7 @@ function display_my_products($mysqli) {
 	    $select_user_product_result = $mysqli->query($select_user_product);
 
 	    while ($product = $select_user_product_result->fetch_array()) {
-	        $product_item = '<div class="card my-product-item"> <div class="card-body">
-	        <h6 class="card-title my-product-name">{NAME}</h6>
-	        <p class="card-subtitle mb-2 text-muted">${PRICE}</p>
-	        <p class="card-text">{DESCRIPTION}</p>';
-
-	        if ($product['available'] == 1){
-	        	$product_item.= '<a href="myproducts.php?edit_product={PRODUCT_ID}&availability=0" class="card-link my-product-delete">stop selling</a>';
-	        	$product_item.= '<p class="card-link to-edit-tag"> to edit, stop selling first </p></div></div>';
-	        } else {
-	        	$product_item.= '<a href="myproducts.php?edit_product={PRODUCT_ID}&availability=1" class="card-link my-product-delete">start selling</a>';
-	       	 	$product_item.= '<a class="card-link" href="editproduct.php?product_id={PRODUCT_ID}"> edit </a></div></div>';
-	        }	        
-	        $search = array("{NAME}", "{PRICE}", "{DESCRIPTION}", "{PRODUCT_ID}");
-	        $replace = array($product['name'], $product['price'], $product['description'], $product['product_id']);
-	        $product_item = str_replace($search, $replace, $product_item);
-	        echo($product_item);
+	 		display_product($product);
 	    } 
 	}
 }
@@ -681,6 +715,24 @@ function display_checkout_cart($mysqli) {
 function complete_checkout($mysqli) {
 	if (isset($_POST['checkout']) && isset($_SESSION['user'])) {
 
+		$selected_products = array();
+
+	    foreach ($_SESSION['cart'] as $product_id => $product) {
+	    	$select_product = "SELECT * FROM products WHERE product_id = ";
+	    	$select_product.= $product_id;
+
+	    	$select_product_result = $mysqli->query($select_product);
+
+	    	$selected_product = $select_product_result->fetch_array();
+
+	    	$selected_products[$product_id] = $selected_product;
+
+	    	if ($selected_product['inventory'] < $product['quantity']) {
+	    		echo("not enough inventory");
+	    		return;
+	    	}
+		}
+
 	    $insert_checkout = "INSERT INTO checkouts (address, postal_code, shipment_status_id, location) VALUES ('";
 	    $insert_checkout.= $_POST['address'];
 	    $insert_checkout.= "', '";
@@ -689,8 +741,6 @@ function complete_checkout($mysqli) {
 	    $insert_checkout_result = $mysqli->query($insert_checkout);
 
 	    $checkout_id = $mysqli->insert_id;
-
-	    $message = "";
 
 	    foreach ($_SESSION['cart'] as $product_id => $product) {
 	        $insert_product_checkout = "INSERT INTO product_checkout (product_id, checkout_id, quantity) VALUES (";
@@ -702,6 +752,13 @@ function complete_checkout($mysqli) {
 	        $insert_product_checkout.= ")";
 
 	        $insert_product_checkout_result = $mysqli->query($insert_product_checkout);
+
+	        $update_product_inventory = "UPDATE products SET inventory = ";
+	        $update_product_inventory.= $selected_products[$product_id]['inventory'] - $product['quantity'];
+	        $update_product_inventory.= " WHERE product_id = ";
+	        $update_product_inventory.= $product_id;
+	        
+	        $update_product_inventory_result = $mysqli->query($update_product_inventory);
 	    }
 
 	    $insert_user_checkout = "INSERT INTO user_checkout (user_id, checkout_id) VALUES (";

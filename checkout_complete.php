@@ -21,7 +21,7 @@ complete_checkout($mysqli);
     <body> 
         <main role="main" class="container">
             <div class="checkout-message">
-                <h1>Checkout Successful! <?php echo $message ?></h1>
+                <h1>Checkout Successful!</h1>
                 <p class="lead">Thanks for using our dummy shop you bought nothing</p>
             </div>
         </main>

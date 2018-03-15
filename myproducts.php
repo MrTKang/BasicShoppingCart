@@ -11,6 +11,10 @@ if (has_permissions($_SESSION['user']['permissions'], array(16))
     set_product_availability($mysqli, $_GET["edit_product"], $_GET["availability"]);
 }
 
+if (has_permissions($_SESSION['user']['permissions'], array(1, 2, 4)) 
+    && isset($_GET['product_id']) && isset($_POST['add_inventory'])) {
+    add_inventory($mysqli, $_GET['product_id'], $_POST['inventory']);
+}
 
 ?>
 
@@ -28,7 +32,13 @@ if (has_permissions($_SESSION['user']['permissions'], array(16))
     </head>
     <body>
         <div class="product-container">
-            <?php display_my_products($mysqli) ?>
+            <?php 
+            if (has_permissions($_SESSION['user']['permissions'], array(1, 2, 4))) {
+                display_all_products($mysqli);
+            } else {
+                display_my_products($mysqli);
+            }
+            ?>
             <a class="add-product-button btn btn-sm btn-outline-secondary"  href="#" data-toggle="modal" data-target="#exampleModal">Add Product</a>
         </div>
         <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">

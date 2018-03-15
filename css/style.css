@@ -99,3 +99,21 @@
 .checkout-link {
   display: block;
 }
+
+.edit-inventory-form {
+
+}
+
+.inventory-btn {
+  display: inline;
+  width: initial;
+}
+
+.inventory-input {
+  display: inline;
+  width: 4em;
+}
+
+.inventory-text {
+  display: inline;
+}
