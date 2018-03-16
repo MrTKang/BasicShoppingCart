@@ -188,7 +188,8 @@ function sign_up_user($mysqli, $gmail_account, $gmail_password) {
 			    
 			    //Set up template
 			    if ($insert_confirmation_key_result === TRUE) {
-			    	send_email($_POST['email'], $_POST['name'], $confirmation_key, $gmail_account, $gmail_password);
+					$template = file_get_contents("signup_email_confirmation_template.txt");
+			    	send_email($_POST['email'], $_POST['name'], $confirmation_key, $gmail_account, $gmail_password, $template, "Welcome to Kevin's Store");
 			        $message.= "Please check your email at ";
 			        $message.= $_POST['email'];
 			        $signed_up = TRUE;
@@ -207,10 +208,9 @@ function sign_up_user($mysqli, $gmail_account, $gmail_password) {
 		'email' => $_POST['email']);
 }
 
-function send_email($email, $name, $confirmation_key, $gmail_account, $gmail_password) {
-	$template = file_get_contents("signup_email_confirmation_template.txt");
-	$template = str_replace('{EMAIL}', $email, $template);
-	$template = str_replace('{KEY}', $confirmation_key, $template);
+function send_email($email, $name, $key, $gmail_account, $gmail_password, $email_template, $subject) {
+	$template = str_replace('{EMAIL}', $email, $email_template);
+	$template = str_replace('{KEY}', $key, $template);
 	$template = str_replace('{ADDRESS}', "http://localhost", $template);
 
 	//Send Email
@@ -219,7 +219,7 @@ function send_email($email, $name, $confirmation_key, $gmail_account, $gmail_pas
 	$transport->setPassword($gmail_password);
 	$mailer = new Swift_Mailer($transport);
 
-	$email_message = new Swift_Message("Welcome to Kevin's Store");
+	$email_message = new Swift_Message($subject);
 	$email_message->setFrom(['freestore0202@gmail.com' => "Kevin's Store"]);
 	$email_message->setTo([$email => $name]);
 	$email_message->setBody($template, 'text/html');
@@ -236,7 +236,8 @@ function resend_email($mysqli, $gmail_account, $gmail_password) {
 		$select_confirmation_key_result = $mysqli->query($select_confirmation_key);
 
 		$confirmation_key = $select_confirmation_key_result->fetch_array();
-		send_email($_SESSION['confirmation_email'], $_SESSION['username'], $confirmation_key['confirmation_key'], $gmail_account, $gmail_password);
+		$template = file_get_contents("signup_email_confirmation_template.txt");
+		send_email($_SESSION['confirmation_email'], $_SESSION['username'], $confirmation_key['confirmation_key'], $gmail_account, $gmail_password, $template, "Welcome to Kevin's Store");
 	}
 }
 
@@ -1047,6 +1048,112 @@ function owns_product($mysqli, $user_id, $product_id) {
 function can_edit_product($mysqli, $user, $product_id) {
 	return (has_permissions($user['permisssions'], array(4)) || 
 		(has_permissions($user['permissions'], array(16)) && owns_product($mysqli, $user['user_id'], $product_id)));
+}
+
+//RESETPASSWORD
+
+function display_password_reset_form($mysqli, $email, $password_reset_key) {
+    $select_password_reset_key = "SELECT * FROM password_reset_key 
+    								INNER JOIN users 
+    								ON users.user_id = password_reset_key.user_id
+    								WHERE users.email = '";
+    $select_password_reset_key.= $email;
+    $select_password_reset_key.= "' AND password_reset_key.password_reset_key = '";
+    $select_password_reset_key.= $password_reset_key;
+    $select_password_reset_key.= "' LIMIT 1";
+    $select_password_reset_key_result = $mysqli->query($select_password_reset_key);
+
+    if ($select_password_reset_key_result) {
+
+	    $password_reset_form = '<form  class="password-reset-form" method="post" action="resetpassword.php?email={EMAIL}&key={KEY}">
+	    <h1 class="h3 mb-3 font-weight-normal">Reset password</h1>
+	    <label for="name">Password for {EMAIL}</label>
+	    <input type="password" class="form-control" name="password" required="" autofocus="">
+	    <button id="sign-up-btn" class="btn btn-lg btn-primary btn-block"  name="reset_password" type="submit">Reset</button>
+	    <p class="mt-5 mb-3 text-muted">© 2017-2018</p>
+	    </form>';
+
+	    $search = array("{EMAIL}", "{KEY}");
+	    $replace = array($email, $password_reset_key);
+	    $password_reset_form = str_replace($search, $replace, $password_reset_form);
+
+		echo($password_reset_form);
+
+    }
+}
+
+function reset_password($mysqli, $email, $password) {
+	if (isset($_GET['email']) && isset($_GET['key'])) {
+	    $select_password_reset_key = "SELECT * FROM password_reset_key 
+	    								INNER JOIN users 
+	    								ON users.user_id = password_reset_key.user_id
+	    								WHERE users.email = '";
+	    $select_password_reset_key.= $_GET['email'];
+	    $select_password_reset_key.= "' AND password_reset_key.password_reset_key = '";
+	    $select_password_reset_key.= $_GET['key'];
+	    $select_password_reset_key.= "' LIMIT 1";
+	    $select_password_reset_key_result = $mysqli->query($select_password_reset_key);
+
+	    if ($select_password_reset_key_result->num_rows != 0) {
+	        $password_reset_key = $select_password_reset_key_result->fetch_array();
+
+	        $update_user_password = "UPDATE users SET password = '";
+	        $update_user_password.= md5($password);
+	        $update_user_password.= "' WHERE user_id = ";
+	        $update_user_password.= $password_reset_key['user_id'];
+
+	        $update_user_password_result = $mysqli->query($update_user_password);
+
+	        echo($mysqli->error);
+	        $delete_password_reset_key = "DELETE FROM password_reset_key WHERE user_id = ";
+	        $delete_password_reset_key.= $password_reset_key['user_id'];
+
+	        $delete_password_reset_key_result = $mysqli->query($delete_password_reset_key);
+	    }
+
+	}
+
+}
+
+//FORGOTPASSWORD
+
+function display_send_password_reset_email_form() {
+	$password_reset_form = '<form  class="password-reset-form" method="post" action="forgotpassword.php">
+	    <h1 class="h3 mb-3 font-weight-normal">Send Password Reset Email</h1>
+	    <label for="name">Account Email</label>
+	    <input type="email" class="form-control" name="email" required="" autofocus="">
+	    <button id="sign-up-btn" class="btn btn-lg btn-primary btn-block"  name="reset_password" type="submit">Send</button>
+	    <p class="mt-5 mb-3 text-muted">© 2017-2018</p>
+	    </form>';
+	echo($password_reset_form);
+}
+
+function send_password_reset_email($mysqli, $email, $gmail_account, $gmail_password) {
+	$select_user = "SELECT * FROM users WHERE email = '";
+	$select_user.= $email;
+	$select_user.= "' LIMIT 1";
+
+	$select_user_result = $mysqli->query($select_user);
+	if ($select_user_result) {
+		$user = $select_user_result->fetch_array();
+
+		//Make Confirmation Key
+	    $password_reset_key = md5($user['name'].$user['email'].date("Ymdhms"));
+	    //Save it to database
+	    $insert_password_reset_key = "INSERT INTO password_reset_key (user_id, password_reset_key) VALUES (";
+	    $insert_password_reset_key.= $user['user_id'];
+	    $insert_password_reset_key.= ", '";
+	    $insert_password_reset_key.= $password_reset_key;
+	    $insert_password_reset_key.= "')";
+
+	    $insert_password_reset_key_result = $mysqli->query($insert_password_reset_key);
+		$template = file_get_contents("password_reset_email_template.txt");
+		send_email($email, $user['name'], $password_reset_key, $gmail_account, $gmail_password, $template, "Reset your Password for Kevin's Store");
+	} else {
+
+	}
+
+
 }
 
 ?>
