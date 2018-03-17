@@ -17,7 +17,13 @@
 
     <body>
         <div class="account-container">
-            <?php display_my_checkouts($mysqli) ?>
+            <?php 
+
+            if (isset($_SESSION['user'])) {
+                display_my_checkouts($mysqli, $_SESSION['user']);
+            }
+
+            ?>
         </div>
         <a href="myproducts">my products</a>
         <a href="mycategories">my categories</a>

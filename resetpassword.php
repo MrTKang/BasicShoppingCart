@@ -3,8 +3,8 @@ require("includes/credentials.php");
 require("includes/functions.php");
 session_start();
 
-if (isset($_GET['email']) && isset($_POST['password'])) {
-    reset_password($mysqli, $_GET['email'], $_POST['password']);
+if (isset($_GET['email']) && isset($_GET['key']) && isset($_POST['password'])) {
+    reset_password($mysqli, $_GET['email'], $_GET['key'], $_POST['password']);
 }
 
 ?>

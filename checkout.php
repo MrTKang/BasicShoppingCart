@@ -16,7 +16,12 @@ session_start();
     <body >
         <div class="checkout-container">
             <form class="checkout-form" method="post" action="checkout_complete.php">
-                <?php display_checkout_cart($mysqli) ?>
+
+                <?php 
+                if (isset($_SESSION['cart'])) {
+                    display_checkout_cart($mysqli, $_SESSION['cart']);
+                } 
+                ?>
 
                 <label>Address</label>
                 <input type="text" name="address" class="form-control" required="" autofocus="">

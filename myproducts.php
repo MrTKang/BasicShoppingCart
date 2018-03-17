@@ -2,8 +2,10 @@
 require("includes/functions.php");
 session_start();
 
-if (has_permissions($_SESSION['user']['permissions'], array(1))) {
-    create_product($mysqli);
+if (has_permissions($_SESSION['user']['permissions'], array(1)) && 
+    isset($_SESSION['user']) && isset($_POST['product']) && isset($_FILES['upload'])) {
+    print_r($_POST['category']);
+    create_product($mysqli, $_SESSION['user'], $_POST, $_FILES['upload']['name'], $_FILES['upload']['tmp_name']);
 }
 
 if (has_permissions($_SESSION['user']['permissions'], array(16)) 
@@ -33,9 +35,9 @@ if (has_permissions($_SESSION['user']['permissions'], array(1, 2, 4))
     <body>
         <div class="product-container">
             <?php 
-            if (has_permissions($_SESSION['user']['permissions'], array(1, 2, 4))) {
+            if (has_permissions($_SESSION['user']['permissions'], array(1, 2, 4)) && isset($_SESSION['user'])) {
                 display_all_products($mysqli);
-            } else {
+            } else if (isset($_SESSION['user'])) {
                 display_my_products($mysqli);
             }
             ?>
@@ -43,7 +45,7 @@ if (has_permissions($_SESSION['user']['permissions'], array(1, 2, 4))
         </div>
         <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
-            <form action="myproducts.php" method="post" enctype="multipart/form-data">
+            <form id="productform" action="myproducts.php" method="post" enctype="multipart/form-data">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title" id="exampleModalLabel">New Product</h5>

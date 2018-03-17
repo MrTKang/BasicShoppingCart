@@ -1,12 +1,22 @@
 <?php
 require("includes/functions.php");
 session_start();
-login_user($mysqli);
-confirm_user_email($mysqli);
+
+if (isset($_POST['submit'])) {
+    $_SESSION['user'] = login_user($mysqli, $_POST['password'], $_POST['email'], $_POST['remember_email']);
+}
+
+if (isset($_GET['email']) && isset($_GET['key'])) {
+    confirm_user_email($mysqli, $_GET['email'], $_GET['key']);
+}
 
 $user_email = "";
 if (isset($_COOKIE['login'])) {
     $user_email = $_COOKIE['login'];
+}
+
+if (isset($_SESSION['user'])) {
+    header("Location: index.php");
 }
 ?>
 

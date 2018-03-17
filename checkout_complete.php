@@ -1,7 +1,11 @@
 <?php
 require("includes/functions.php");
 session_start();
-complete_checkout($mysqli);
+if (isset($_POST['checkout']) && isset($_SESSION['user'])) {
+    if (complete_checkout($mysqli, $_POST['address'], $_POST['postalcode'], $_SESSION['user'], $_SESSION['cart'])) {
+        unset($_SESSION['cart']);
+    }
+}
 ?>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 

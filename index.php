@@ -1,7 +1,10 @@
 <?php
 require("includes/functions.php");
 session_start();
-edit_cart();
+
+if (isset($_POST['edit_cart'])) {
+	edit_cart();
+}
 $logged_in = is_logged_in();
 ?>
 
@@ -64,7 +67,7 @@ $logged_in = is_logged_in();
 			</div>
 			<div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
 				<div class="col-md-6 px-0">
-					<p class="lead my-3">Welcome to Kevin's Store. This is a basic online store created in php and html. You can view the source code at my github.</p>
+					<p class="lead my-3">Welcome to Kevin's Store. This is a basic online store created in php and html. You can view the source code at <a href="https://github.com/supakang/BasicShoppingCart">my github</a>.</p>
 				</div>
 			</div>
       		<?php require("products.php") ?>
@@ -82,7 +85,13 @@ $logged_in = is_logged_in();
 			              	</button>
 	            		</div>
 						<div class="modal-body">
-							<?php display_cart($mysqli) ?>
+							<?php 
+								if (isset($_SESSION['cart'])) {
+									display_cart($mysqli);
+								} else {
+									display_empty_cart();
+								}
+							?>
 	            		</div>
 	            		<div class="modal-footer">
 	            			<button type="submit" name="edit_cart" class="btn btn-primary">Save changes</button>
