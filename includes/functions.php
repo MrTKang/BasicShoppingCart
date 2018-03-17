@@ -36,7 +36,9 @@ function display_product($product){
 	$product_div = '
 	<div class="product-card">
 		<div class="product-image-container">
-			<img class="product-image" alt="Thumbnail" src="{IMAGE}">
+			<a href="productdetails.php?product_id={PRODUCT_ID}">
+				<img class="product-image" alt="Thumbnail" src="{IMAGE}">
+			</a>
 		</div>
 		<div>{NAME}</div>
 		<div>${PRICE}</div>
@@ -1139,5 +1141,60 @@ function send_password_reset_email($mysqli, $email, $gmail_account, $gmail_passw
 
 
 }
+
+//PRODUCTDETAILS
+
+function display_product_details($mysqli, $product_id, $cart) {
+	$select_product = "SELECT * FROM products WHERE product_id = '";
+	$select_product.= $product_id;
+	$select_product.= "' LIMIT 1";
+
+	$select_product_result = $mysqli->query($select_product);
+
+	$product = $select_product_result->fetch_array();
+
+	$product_item = '<div class="card my-product-item"> <div class="card-body">
+    <h6 class="card-title my-product-name">{NAME}</h6>
+    <p class="card-subtitle mb-2 text-muted">${PRICE}</p>';
+
+    if (isset($cart) && isset($cart[$product_id])) {
+    	$quantity_in_cart = '<p class="card-subtitle mb-2 text-muted">(';
+    	$quantity_in_cart.= $cart[$product_id]['quantity'];
+    	$quantity_in_cart.=' in cart)</p>';
+    	$product_item.= $quantity_in_cart;
+    }
+
+    $product_item.= '<form id="product-details-checkout-form" class="edit-inventory-form" method="post" action="productdetails.php?product_id={PRODUCT_ID}">
+    	<div class="product-detail-image-container">
+			<img class="product-image" alt="Thumbnail" src="{IMAGE}">
+    	</div> 
+    	<p class="card-text">Description:</p>
+    	<p class="card-text">{DESCRIPTION}</p>
+    	<input class="product-quantity-input form-control" type="number" name="quantity" value=0>
+    	<button class="product-details-checkout-btn btn btn-lg btn-primary btn-block"  name="add_to_cart" type="submit">Add to Cart</button>
+    </form>';
+
+    $search = array("{NAME}", "{PRICE}", "{IMAGE}", "{DESCRIPTION}", "{PRODUCT_ID}");
+    $replace = array($product['name'], $product['price'], $product['image'], $product['description'], $product['product_id']);
+    $product_item = str_replace($search, $replace, $product_item);
+    echo($product_item);
+}
+
+function add_quantity_to_cart($cart, $product_id, $quantity) {
+	if (isset($cart[$product_id])) {
+		$cart[$product_id]['quantity'] += $quantity;
+	} else {
+		$select_product = "SELECT * FROM products WHERE product_id = ";
+		$select_product.= $product_id;
+
+		$select_product_result = $mysqli->query($select_product);
+		if ($select_product_result->num_rows != 0) {
+			$product = $select_product_result->fetch_array();
+			$cart[$product_id] = array("quantity" => $quantity, "price" => $product['price']);
+		}
+	}
+	return $cart;
+}
+
 
 ?>

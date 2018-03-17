@@ -23,11 +23,6 @@ if (has_permissions($_SESSION['user']['permissions'], array(1024)) &&
     <body>
         <div class="user-container">
             <?php display_user_list($mysqli) ?>
-            <form class="user-form" action="myusers.php" method="post">
-                <h1 class="h3 mb-3 font-weight-normal">Add new user</h1>
-                User name: <input class="form-control" type="text" name="name"><br>
-                <button class="btn btn-lg btn-primary btn-block user-btn" type="submit" name="user">submit</button>
-            </form>
         </div>
     </body>
 </html>

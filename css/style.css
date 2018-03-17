@@ -4,21 +4,21 @@
 }
 
 
-@media screen and (min-width: 640px) {
+@media screen and (min-width: 576px) {
   .product-card {
     width: 49.5%;
     display: inline-block;
   }
 }
 
-@media screen and (min-width: 850px) {
+@media screen and (min-width: 768px) {
   .product-card {
     width: 32.5%;
     display: inline-block;
   }
 }
 
-@media screen and (min-width: 998px) {
+@media screen and (min-width: 992px) {
   .product-card {
     width: 24.6%;
     display: inline-block;
@@ -129,16 +129,21 @@
 
 }
 
-.inventory-btn {
+.inventory-btn, .product-details-checkout-btn {
   display: inline;
   width: initial;
 }
 
-.inventory-input {
+.inventory-input, .product-quantity-input{
   display: inline;
   width: 4em;
 }
 
 .inventory-text {
   display: inline;
+}
+
+.product-detail-image-container{
+  height: 300px;
+  width: 300px;
 }
