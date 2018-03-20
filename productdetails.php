@@ -2,9 +2,11 @@
 require("includes/functions.php");
 session_start();
 
-if (isset($_POST['add_to_cart'])) {
-    $_SESSION['cart'] = add_quantity_to_cart($_SESSION['cart'], $_GET['product_id'], $_POST['quantity']);
-}
+if (isset($_POST['add_to_cart']) && isset($_SESSION['user'])) {
+    add_quantity_to_user_cart($mysqli, $_SESSION['user'], $_GET['product_id'], $_POST['quantity']);
+} else if (isset($_POST['add_to_cart']) && isset($_SESSION['cart'])) {
+    $_SESSION['cart'] = add_quantity_to_session_cart($_SESSION['cart'], $_GET['product_id'], $_POST['quantity']);
+} 
 
 ?>
 

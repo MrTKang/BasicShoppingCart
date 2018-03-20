@@ -48,11 +48,12 @@
 .edit-category-container, 
 .edit-user-container,
 .password-reset-container,
-.send-password-reset-email-container {
+.send-password-reset-email-container,
+.make-payment-container {
 	display: inline-block;
-    background-color: #f5f5f5;
-    width:100%;
-    height:100%;
+  background-color: #f5f5f5;
+  width:100%;
+  height:100%;
 }
 
 
@@ -68,6 +69,15 @@
     margin-left: auto;
     margin-right: auto;
     width: 300px;
+}
+
+
+.make-payment-form {
+    padding-top: 10em;
+    margin-left: auto;
+    margin-right: auto;
+    width: 600px;
+    text-align: center;
 }
 
 .user-form,
@@ -143,7 +153,26 @@
   display: inline;
 }
 
-.product-detail-image-container{
+.product-detail-image-container {
   height: 300px;
   width: 300px;
+}
+
+.selected-category {
+  color: #ffffff!important;
+  background-color: #6c757d;
+  border-radius: .2rem;
+  padding: .35rem 1rem;
+}
+
+.selected-category:hover {
+  text-decoration: none;
+}
+
+.category {
+  padding: .35rem 1rem;
+}
+
+.payment-message {
+  text-align: center;
 }

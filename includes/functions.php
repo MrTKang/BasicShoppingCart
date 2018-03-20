@@ -53,7 +53,31 @@ function display_product($product){
 }
 
 function add_to_cart($mysqli, $product_id, $session) {
-	if (isset($session['cart'][$product_id])) {
+	if (isset($session['user'])) {
+		$select_cart_products = "SELECT * FROM cart_product WHERE user_id = ";
+		$select_cart_products.= $session['user']['user_id'];
+		$select_cart_products.= " AND product_id = ";
+		$select_cart_products.= $product_id;
+		$select_cart_products.= " LIMIT 1";
+
+		$select_cart_products_result = $mysqli->query($select_cart_products);
+
+		if ($select_cart_products_result->num_rows > 0) {
+			$update_cart_product = "UPDATE cart_product SET quantity = quantity + 1";
+			$update_cart_product_result = $mysqli->query($update_cart_product);
+		} else {
+			$insert_cart_product = "INSERT INTO cart_product (product_id, user_id, quantity) VALUES (";
+			$insert_cart_product.= $product_id;
+			$insert_cart_product.= ", ";
+			$insert_cart_product.= $session['user']['user_id'];
+			$insert_cart_product.= ", ";
+			$insert_cart_product.= 1;
+			$insert_cart_product.= ")";
+
+			$insert_cart_product_result = $mysqli->query($insert_cart_product);
+		}
+
+	} else if (isset($session['cart'][$product_id])) {
 		$session['cart'][$product_id]['quantity']++;
 	} else {
 		$select_product = "SELECT * FROM products WHERE product_id = ";
@@ -69,14 +93,54 @@ function add_to_cart($mysqli, $product_id, $session) {
 }
 
 //INDEX
-function edit_cart() {
-	foreach($_POST['quantity'] as $key => $value) {
+function edit_session_cart($cart, $post_quantities) {
+	foreach($post_quantities as $key => $value) {
 		if ($value == 0) {
-			unset($_SESSION['cart'][$key]);
+			unset($cart[$key]);
 		} else {
-			$_SESSION['cart'][$key]['quantity'] = $value;
+			$cart[$key]['quantity'] = $value;
 		}
 	}
+}
+
+function edit_user_cart($mysqli, $user, $post_quantities) {
+	print_r($post_quantities);
+	$select_cart_products = "SELECT * FROM cart_product WHERE user_id = ";
+	$select_cart_products.= $user['user_id'];
+	$select_cart_products.= " AND product_id in (";
+
+	foreach ($post_quantities as $key => $value) {
+		$select_cart_products.= $key;
+		$select_cart_products.= ", ";
+	}
+	$select_cart_products = substr($select_cart_products, 0, -2);
+	$select_cart_products.= ")";
+
+	$select_cart_products_result = $mysqli->query($select_cart_products);
+
+
+	while ($cart_product = $select_cart_products_result->fetch_array()) {
+		if ($post_quantities[$cart_product['product_id']] == 0) {
+			delete_cart_product($mysqli, $user['user_id'], $cart_product['product_id']);
+		} else {
+			$update_cart_product = "UPDATE cart_product SET quantity = ";
+			$update_cart_product.= $post_quantities[$cart_product['product_id']];
+			$update_cart_product.= " WHERE user_id = ";
+			$update_cart_product.= $user['user_id'];
+			$update_cart_product.= " AND product_id = ";
+			$update_cart_product.= $cart_product['product_id'];
+			$update_cart_product_result = $mysqli->query($update_cart_product);
+		}
+	}
+}
+
+function delete_cart_product($mysqli, $user_id, $product_id) {
+	$delete_cart_product = "DELETE FROM cart_product WHERE user_id = ";
+	$delete_cart_product.= $user_id;
+	$delete_cart_product.= " AND product_id = ";
+	$delete_cart_product.= $product_id;
+
+	$delete_cart_product_result = $mysqli->query($delete_cart_product);
 }
 
 function is_logged_in() {
@@ -87,42 +151,72 @@ function is_logged_in() {
 	return isset($_SESSION['user']);
 }
 
-function display_categories($mysqli) {
+function display_categories($mysqli, $categoryname) {
 	$select_categories = "SELECT * FROM categories";
 	$categories_result = $mysqli->query($select_categories);
-
+	echo('<a class="category text-muted" href="/">HOME</a>');
 	while ($category = $categories_result->fetch_array()) {
-		$category_anchor = '<a class="p-2 text-muted" href="index.php?category={CATEGORY}">{CATEGORY}</a>';
+		if ($categoryname == $category['name']) {
+			$category_anchor = '<a class="selected-category" href="index.php?category={CATEGORY}">{CATEGORY}</a>';
+		} else {
+			$category_anchor = '<a class="category text-muted" href="index.php?category={CATEGORY}">{CATEGORY}</a>';
+		}
 		$category_anchor = str_replace("{CATEGORY}", $category['name'], $category_anchor);
 		echo($category_anchor);
 	}
 }
 
-function display_cart($mysqli) {
+function display_user_cart($mysqli, $user) {
+	$select_cart_products = "SELECT * FROM cart_product 
+							INNER JOIN products
+							ON cart_product.product_id = products.product_id 
+							WHERE user_id = ";
+	$select_cart_products.= $user['user_id'];
+
+	$select_cart_products_result = $mysqli->query($select_cart_products);
+
+	$cart_products = array();
+
+	while ($cart_product = $select_cart_products_result->fetch_array()) {
+		array_push($cart_products, $cart_product);
+	}
+	if ($select_cart_products_result->num_rows == 0) {
+		display_empty_cart();
+	}
+	display_cart($cart_products);
+}
+
+function display_session_cart($mysqli, $cart) {
 	$select_products = "SELECT * FROM products WHERE product_id IN (";
-	foreach ($_SESSION['cart'] as $id => $value){
+	foreach ($cart as $id => $value){
 		$select_products.=$id;
 		$select_products.=", ";
 	}
-
 	$select_products = substr($select_products, 0, -2);
 	$select_products.= ") ORDER BY name ASC";
 	$products_result = $mysqli->query($select_products);
 
-	if ($products_result->num_rows == 0) {
-		$cart_empty = true;
-	} else {
-		$checkout_price = 0;
-		while ($product = $products_result->fetch_array()){
-			$quantity = $_SESSION['cart'][$product['product_id']]['quantity'];
-			$checkout_price += $product['price'] * $quantity;
+	$products = array();
+	while ($product = $products_result->fetch_array()) {
+		$product['quantity'] = $cart[$product['product_id']]['quantity'];
+		array_push($products, $product);
+	}
 
-			$cart_item = '<p>{PRODUCT_NAME} X <input type="text" name="quantity[{PRODUCT_ID}]" value="{QUANTITY}" size="5"/> = ${PRICE}</p>';
-			$search = array("{PRODUCT_NAME}", "{PRODUCT_ID}", "{QUANTITY}", "{PRICE}");
-			$replace = array($product['name'], $product['product_id'], $quantity, number_format($product['price'] * $quantity , 2, '.', ''));
-			$cart_item = str_replace($search, $replace, $cart_item);
-			echo($cart_item);
-		}
+	display_cart($products);
+}
+
+
+function display_cart($products) {
+	$checkout_price = 0;
+	foreach ($products as $product){
+		$quantity = $product['quantity'];
+		$checkout_price += $product['price'] * $quantity;
+
+		$cart_item = '<p>{PRODUCT_NAME} X <input type="text" name="quantity[{PRODUCT_ID}]" value="{QUANTITY}" size="5"/> = ${PRICE}</p>';
+		$search = array("{PRODUCT_NAME}", "{PRODUCT_ID}", "{QUANTITY}", "{PRICE}");
+		$replace = array($product['name'], $product['product_id'], $quantity, number_format($product['price'] * $quantity , 2, '.', ''));
+		$cart_item = str_replace($search, $replace, $cart_item);
+		echo($cart_item);
 	}
 }
 
@@ -280,6 +374,56 @@ function display_sign_up_form($status) {
 
 //LOGIN
 
+function transfer_cart($mysqli, $user_id, $cart) {
+	$inserted = true;
+	foreach ($cart as $product_id => $product) {
+		if (exists_cart_product($mysqli, $user_id, $product_id)) {
+			$inserted = $inserted && update_cart_product($mysqli, $user_id, $product_id, $product['quantity']);
+		} else {
+			$inserted = $inserted && insert_cart_product($mysqli, $user_id, $product_id, $product['quantity']);
+		}
+	}
+	return $inserted;
+}
+
+function insert_cart_product($mysqli, $user_id, $product_id, $quantity){
+	$insert_cart_product = "INSERT INTO cart_product (product_id, user_id, quantity) VALUES (";
+	$insert_cart_product.= $product_id;
+	$insert_cart_product.= ", ";
+	$insert_cart_product.= $user_id;
+	$insert_cart_product.= ", ";
+	$insert_cart_product.= $product['quantity'];
+	$insert_cart_product.= ")";
+
+	$insert_cart_product_result = $mysqli->query($insert_cart_product);
+		
+	return (($insert_cart_product_result) ? true : false);
+}
+
+function update_cart_product($mysqli, $user_id, $product_id, $quantity) {
+	$update_cart_product = "UPDATE cart_product SET quantity = quantity + ";
+	$update_cart_product.= $quantity;
+	$update_cart_product.= " WHERE user_id = ";
+	$update_cart_product.= $user_id;
+	$update_cart_product.= " AND product_id = ";
+	$update_cart_product.= $product_id;
+
+	$update_cart_product_result = $mysqli->query($update_cart_product);
+
+	return (($update_cart_product_result) ? true : false);
+}
+
+function exists_cart_product($mysqli, $user_id, $product_id) {
+	$select_cart_product = "SELECT * FROM cart_product WHERE user_id = ";
+	$select_cart_product.= $user_id;
+	$select_cart_product.= " AND product_id = ";
+	$select_cart_product.= $product_id;
+
+	$select_cart_product_result = $mysqli->query($select_cart_product);
+
+	return ($select_cart_product_result->num_rows > 0);
+}
+
 function login_user($mysqli, $password, $email, $remember_email) {
     $select_user = "SELECT * FROM users WHERE email = '";
     $select_user.= $email;
@@ -293,6 +437,7 @@ function login_user($mysqli, $password, $email, $remember_email) {
             if (isset($remember_email)) {
             	setcookie("login", $email, time()+ (365 * 24 * 60 * 60));
             }
+
             return $login_user;
         } else if ($login_user['password'] === md5($password) && $login_user['email_confirmed'] == 0) {
             $error_message = "please confirm your email";
@@ -674,7 +819,7 @@ function edit_category($mysqli, $category_id, $info) {
 
 //CHECKOUT
 
-function display_checkout_cart($mysqli, $cart) {
+function display_session_checkout($mysqli, $cart) {
     $select_products = "SELECT * FROM products WHERE product_id IN (";
     foreach ($cart as $product_id => $quantity) {
         $select_products.= $product_id;
@@ -700,39 +845,68 @@ function display_checkout_cart($mysqli, $cart) {
     echo($total_price_line);
 }
 
-//CHECKOUT COMPLETE
+function display_user_checkout($mysqli, $user) {
+	$select_products = "SELECT * FROM products
+							INNER JOIN cart_product
+							ON products.product_id = cart_product.product_id 
+							WHERE cart_product.user_id = ";
+	$select_products.= $user['user_id'];
 
-function complete_checkout($mysqli, $address, $postalcode, $cart, $user) {
+	$select_products_result = $mysqli->query($select_products);
+
+	$total_price = 0;
+	while ($product = $select_products_result->fetch_array()) {
+		$total_price+= $product['price'] * $product['quantity'];
+        $product_item = '<p>{PRODUCT_NAME} X {QUANTITY} = ${PRICE}</p>';
+
+        $product_search = array("{PRODUCT_NAME}", "{QUANTITY}", "{PRICE}");
+        $product_replace = array($product['name'], $product['quantity'], 
+        	number_format($product['price'] * $product['quantity'] , 2, '.', ''));
+        $product_item = str_replace($product_search, $product_replace, $product_item);
+		echo($product_item);        
+	}
+	$total_price_line = '<p>Total Price: ${TOTAL_PRICE}</p>';
+    $total_price_line = str_replace("{TOTAL_PRICE}", number_format($total_price, 2, '.', ''), $total_price_line);
+    echo($total_price_line);
+}
+
+//COMPLETECHECKOUT
+
+function complete_checkout($mysqli, $address, $postalcode, $user) {
 	$selected_products = array();
 
-    foreach ($_SESSION['cart'] as $product_id => $product) {
-    	$select_product = "SELECT * FROM products WHERE product_id = ";
-    	$select_product.= $product_id;
-
-    	$select_product_result = $mysqli->query($select_product);
-
-    	$selected_product = $select_product_result->fetch_array();
-
-    	$selected_products[$product_id] = $selected_product;
-
+	$select_products = "SELECT * FROM products
+							INNER JOIN cart_product
+							ON products.product_id = cart_product.product_id 
+							WHERE cart_product.user_id = ";
+	$select_products.= $user['user_id'];
+	$select_products_result = $mysqli->query($select_products);
+    
+    $total_amount = 0;
+    while ($selected_product = $select_products_result->fetch_array()){
     	if ($selected_product['inventory'] < $product['quantity']) {
     		echo("not enough inventory");
     		return;
     	}
-	}
+        $total_amount += $selected_product['price'] * $selected_product['quantity'];
+    	array_push($selected_products, $selected_product);
+    }
 
-    $insert_checkout = "INSERT INTO checkouts (address, postal_code, shipment_status_id, location) VALUES ('";
+    $insert_checkout = "INSERT INTO checkouts (address, postal_code, shipment_status_id, location, total_amount) VALUES ('";
     $insert_checkout.= $_POST['address'];
     $insert_checkout.= "', '";
     $insert_checkout.= $_POST['postalcode'];
-    $insert_checkout.= "', 0, 'my store' )";
+    $insert_checkout.= "', 0, 'my store', ";
+    $insert_checkout.= $total_amount;
+    $insert_checkout.= ")";
     $insert_checkout_result = $mysqli->query($insert_checkout);
 
     $checkout_id = $mysqli->insert_id;
 
-    foreach ($_SESSION['cart'] as $product_id => $product) {
+    foreach ($selected_products as $product) {
+
         $insert_product_checkout = "INSERT INTO product_checkout (product_id, checkout_id, quantity) VALUES (";
-        $insert_product_checkout.= $product_id;
+        $insert_product_checkout.= $product['product_id'];
         $insert_product_checkout.= ",";
         $insert_product_checkout.= $checkout_id;
         $insert_product_checkout.= ",";
@@ -744,10 +918,10 @@ function complete_checkout($mysqli, $address, $postalcode, $cart, $user) {
         $update_product_inventory = "UPDATE products SET inventory = ";
         $update_product_inventory.= $selected_products[$product_id]['inventory'] - $product['quantity'];
         $update_product_inventory.= " WHERE product_id = ";
-        $update_product_inventory.= $product_id;
+        $update_product_inventory.= $product['product_id'];
         
         $update_product_inventory_result = $mysqli->query($update_product_inventory);
-    }
+	}
 
     $insert_user_checkout = "INSERT INTO user_checkout (user_id, checkout_id) VALUES (";
     $insert_user_checkout.= $_SESSION['user']['user_id'];
@@ -757,11 +931,23 @@ function complete_checkout($mysqli, $address, $postalcode, $cart, $user) {
 
     $insert_user_checkout_result = $mysqli->query($insert_user_checkout);
 
-    if ($insert_user_checkout_result) {
-    	return true;
-    } else {
-    	return false;
-    }
+    return $total_amount;
+}
+
+function display_donation_amount($mysqli, $user) {
+	$select_amount = "SELECT SUM(quantity * price) AS amount FROM cart_product 
+						INNER JOIN products
+						ON products.product_id = cart_product.product_id
+						WHERE cart_product.user_id = ";
+	$select_amount.= $user['user_id'];
+
+	$select_amount_result = $mysqli->query($select_amount);
+	$amount = $select_amount_result->fetch_array()['amount'];
+
+	$donation_input = '<input type="text" id="amount" name="amount" value="{AMOUNT}">';
+	$donation_input = str_replace("{AMOUNT}", $amount, $donation_input);
+
+	echo($donation_input);
 }
 
 //MYUSERS
@@ -1180,7 +1366,7 @@ function display_product_details($mysqli, $product_id, $cart) {
     echo($product_item);
 }
 
-function add_quantity_to_cart($cart, $product_id, $quantity) {
+function add_quantity_to_session_cart($cart, $product_id, $quantity) {
 	if (isset($cart[$product_id])) {
 		$cart[$product_id]['quantity'] += $quantity;
 	} else {
@@ -1196,5 +1382,139 @@ function add_quantity_to_cart($cart, $product_id, $quantity) {
 	return $cart;
 }
 
+function add_quantity_to_user_cart($mysqli, $user, $product_id, $quantity) {
+	$select_cart_product = "SELECT * FROM cart_product WHERE user_id = ";
+	$select_cart_product.= $user['user_id'];
+	$select_cart_product.= " AND product_id = ";
+	$select_cart_product.= $product_id;
+	$select_cart_product.= " LIMIT 1";
+
+	$select_cart_product_result = $mysqli->query($select_cart_product);
+
+	if ($select_cart_product_result->num_rows > 0) {
+		$update_cart_product = "UPDATE cart_product SET quantity = quantity + ";
+		$update_cart_product.= $quantity;
+		$update_cart_product.= " WHERE user_id = ";
+		$update_cart_product.= $user['user_id'];
+		$update_cart_product.= " AND product_id = ";
+		$update_cart_product.= $product_id;
+
+		$update_cart_product_result = $mysqli->query($update_cart_product);
+	} else {
+		$insert_cart_product = "INSERT INTO cart_product (product_id, user_id, quantity) VALUES (";
+		$insert_cart_product.= $product_id;
+		$insert_cart_product.= ", ";
+		$insert_cart_product.= $user['user_id'];
+		$insert_cart_product.= ", ";
+		$insert_cart_product.= $quantity;
+		$insert_cart_product.= ")";
+
+		$insert_cart_product_result = $mysqli->query($insert_cart_product);
+	}
+}
+
+//PAYPAL 
+
+function handle_transaction_id($transaction_id, $mysqli, $user) {
+	$pp_hostname = "www.sandbox.paypal.com";
+
+	$req = 'cmd=_notify-synch';
+	$req.= "&tx=";
+	$req.= $transaction_id;
+	$req.= "&at=";
+	$req.= $PAYPAL_AUTH_TOKEN;
+	 
+	$ch = curl_init();
+	curl_setopt($ch, CURLOPT_URL, "https://$pp_hostname/cgi-bin/webscr");
+	curl_setopt($ch, CURLOPT_POST, 1);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
+	curl_setopt($ch, CURLOPT_POSTFIELDS, $req);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+	curl_setopt($ch, CURLOPT_HTTPHEADER, array("Host: $pp_hostname"));
+	$res = curl_exec($ch);
+	curl_close($ch);
+	
+	if(!$res){
+	    //HTTP ERROR
+	}else{
+	     // parse the data
+	    $lines = explode("\n", trim($res));
+	    $keyarray = array();
+	    if (strcmp ($lines[0], "SUCCESS") == 0) {
+	    	$select_user_checkout = "SELECT * FROM checkouts 
+	    								INNER JOIN user_checkout
+	    								ON user_checkout.checkout_id = checkouts.checkout_id
+	    								WHERE user_checkout.user_id = ";
+	    	$select_user_checkout.= $user['user_id'];
+	    	$select_user_checkout.= " AND checkouts.payment_confirmed = 0";
+
+	    	$select_user_checkout_result = $mysqli->query($select_user_checkout);
+	    	
+	    	$delete_cart_product = "DELETE FROM cart_product WHERE user_id = "; 
+	    	$delete_cart_product.= $user['user_id'];
+	    	$delete_cart_product.= " AND product_id = ";
+	    	$delete_cart_product.= $product['product_id'];
+
+	    	$delete_cart_product_result = $mysqli->query($delete_cart_product);
+
+
+	        for ($i = 1; $i < count($lines); $i++) {
+	            $temp = explode("=", $lines[$i],2);
+	            $keyarray[urldecode($temp[0])] = urldecode($temp[1]);
+	        }
+
+	    	if ($select_user_checkout_result->num_rows == 1) {
+				$checkout = $select_user_checkout_result->fetch_array();
+
+				if ($checkout['total_amount'] == $keyarray['mc_gross']) {
+					$update_checkout = "UPDATE checkouts SET payment_confirmed = 1 WHERE checkout_id = ";
+					$update_checkout.= $checkout['checkout_id'];
+					$update_checkout_result = $mysqli->query($update_checkout);
+
+			    return $keyarray;
+				}
+	    	}
+	    }
+	    else if (strcmp ($lines[0], "FAIL") == 0) {
+	    }
+	}
+}
+
+function display_complete_checkout_message($key_array) {
+    $checkout_message = '<h1>Checkout Successful!</h1>
+					    <p class="lead"> Thank you, {FIRSTNAME} {LASTNAME}. </p>
+					    <p class="lead"> You spent {AMOUNT} from your paypal sandbox account.</p>';
+
+	$search = array("{FIRSTNAME}", "{LASTNAME}", "{AMOUNT}");
+	$replace = array($key_array['first_name'], $key_array['last_name'], $key_array['mc_gross']);
+	$checkout_message = str_replace($search, $replace, $checkout_message);
+	echo($checkout_message);
+}
+
+//COMPLETEPAYMENT
+
+function display_complete_payment_form($checkout_amount) {
+	$paypal_form = '
+	<form class="make-payment-form" action="https://www.sandbox.paypal.com/cgi-bin/webscr" method="post" target="_top">
+		<h2>You are paying ${CHECKOUT_AMOUNT} from your sandbox paypal account.</h2>
+		<p class="lead">Thanks for Shopping.</p>
+	    <input type="hidden" name="cmd" value="_xclick">
+	    <input type="hidden" name="business" value="kangstore@gmail.com">
+	    <input type="hidden" name="lc" value="CA">
+	    <input type="hidden" name="button_subtype" value="services">
+	    <input type="hidden" name="no_note" value="1">
+	    <input type="hidden" name="no_shipping" value="1">
+	    <input type="hidden" name="currency_code" value="CAD">
+	    <input type="hidden" name="bn" value="PP-BuyNowBF:btn_buynowCC_LG.gif:NonHosted">
+	    <input type="hidden" name="amount" value="{CHECKOUT_AMOUNT}">
+	    <input type="image" src="https://www.sandbox.paypal.com/en_US/i/btn/btn_buynowCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+	    <img alt="" border="0" src="https://www.sandbox.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1">
+	</form>';
+
+	$paypal_form = str_replace("{CHECKOUT_AMOUNT}", $checkout_amount, $paypal_form);
+
+	echo($paypal_form);
+}
 
 ?>

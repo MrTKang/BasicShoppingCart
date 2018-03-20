@@ -2,9 +2,12 @@
 require("includes/functions.php");
 session_start();
 
-if (isset($_POST['edit_cart'])) {
-	edit_cart();
+if (isset($_POST['edit_cart']) && isset($_SESSION['user'])) {
+	edit_user_cart($mysqli, $_SESSION['user'], $_POST['quantity']);
+} else if (isset($_POST['edit_cart']) && isset($_SESSION['cart'])) {
+	edit_session_cart($_SESSION['cart'], $_POST['quantity']);
 }
+
 $logged_in = is_logged_in();
 ?>
 
@@ -37,7 +40,7 @@ $logged_in = is_logged_in();
 						?>
 					</div>
 					<div class="col-4 text-center">
-						<a class="blog-header-logo text-dark" href="#">Kevin's Store</a>
+						<a class="blog-header-logo text-dark" href="index.php">Kevin's Store</a>
 					</div>
 					<div class="col-4 d-flex justify-content-end align-items-center">
 						<a class="text-muted" href="#">
@@ -52,7 +55,7 @@ $logged_in = is_logged_in();
 						<?php
 						} else {
 						?>
-						<a class="btn btn-sm btn-outline-secondary" href="login">Log in</a>
+						<a class="btn btn-sm btn-outline-secondary" href="login.php">Log in</a>
 						<?php
 						}
 						?>
@@ -61,8 +64,13 @@ $logged_in = is_logged_in();
 			</header>
 			<div class="nav-scroller py-1 mb-2">
 				<nav class="nav d-flex justify-content-between">
-					<a class="p-2 text-muted" href="/">HOME</a>
-					<?php display_categories($mysqli) ?>
+					<?php 
+					if (isset($_GET['category'])) {
+						display_categories($mysqli, $_GET['category']); 
+					} else {
+						display_categories($mysqli, ""); 
+					}
+					?>
 				</nav>
 			</div>
 			<div class="jumbotron p-3 p-md-5 text-white rounded bg-dark">
@@ -86,8 +94,10 @@ $logged_in = is_logged_in();
 	            		</div>
 						<div class="modal-body">
 							<?php 
-								if (isset($_SESSION['cart'])) {
-									display_cart($mysqli);
+								if (isset($_SESSION['user'])) {
+									display_user_cart($mysqli, $_SESSION['user']);
+								} else if (isset($_SESSION['cart'])) {
+									display_session_cart($mysqli, $_SESSION['cart']);
 								} else {
 									display_empty_cart();
 								}
@@ -95,7 +105,7 @@ $logged_in = is_logged_in();
 	            		</div>
 	            		<div class="modal-footer">
 	            			<button type="submit" name="edit_cart" class="btn btn-primary">Save changes</button>
-	            			<a href="checkout" class="btn btn-primary">Checkout</a>
+	            			<a href="checkout.php" class="btn btn-primary">Checkout</a>
 	            		</div>
 	          		</div>
 	        	</form>

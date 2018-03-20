@@ -15,11 +15,13 @@ session_start();
 
     <body >
         <div class="checkout-container">
-            <form class="checkout-form" method="post" action="checkout_complete.php">
+            <form class="checkout-form" method="post" action="completepayment.php">
 
                 <?php 
-                if (isset($_SESSION['cart'])) {
-                    display_checkout_cart($mysqli, $_SESSION['cart']);
+                if (isset($_SESSION['user'])) {
+                    display_user_checkout($mysqli, $_SESSION['user']);
+                } else if (isset($_SESSION['cart'])) {
+                    display_session_checkout($mysqli, $_SESSION['cart']);
                 } 
                 ?>
 
@@ -27,9 +29,13 @@ session_start();
                 <input type="text" name="address" class="form-control" required="" autofocus="">
                 <label>Postal Code</label>
                 <input type="text" name="postalcode" class="form-control" required="" autofocus="">
-                <button class="checkout-btn btn btn-lg btn-primary btn-block" name="checkout" >Checkout</button>
+                
+
+                <button class="checkout-btn btn btn-lg btn-primary btn-block" name="checkout">Continue</button>
                 <p class="mt-5 mb-3 text-muted">© 2017-2018</p>
             </form>
+
+
         </div>
     </body>
 </html>

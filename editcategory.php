@@ -21,7 +21,6 @@ if (has_permissions($_SESSION['user']['permissions'], array(128))
     <body>
         <div class="edit-category-container">
                 <?php display_edit_category_form($mysqli, $_GET['category_id']) ?>
-            </form>
         </div>
     </body>
 </html>

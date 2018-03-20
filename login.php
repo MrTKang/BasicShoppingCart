@@ -4,6 +4,11 @@ session_start();
 
 if (isset($_POST['submit'])) {
     $_SESSION['user'] = login_user($mysqli, $_POST['password'], $_POST['email'], $_POST['remember_email']);
+    if (isset($_SESSION['user']) && isset($_SESSION['cart'])) {
+        if (transfer_cart($mysqli, $_SESSION['user']['user_id'], $_SESSION['cart'])) {
+            unset($_SESSION['cart']);
+        }
+    }
 }
 
 if (isset($_GET['email']) && isset($_GET['key'])) {
