@@ -50,8 +50,8 @@ if (isset($_SESSION['user'])) {
                     </label>
                 </div>
                 <button class="btn btn-lg btn-primary btn-block" name="submit" >Sign in</button>
-                <a href="signup">Sign Up</a>
-                <a href="forgotpassword">Forgot Password</a>
+                <a href="signup.php">Sign Up</a>
+                <a href="forgotpassword.php">Forgot Password</a>
                 <p class="mt-5 mb-3 text-muted">© 2017-2018</p>
             </form>
         </div>

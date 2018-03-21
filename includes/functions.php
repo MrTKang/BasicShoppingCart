@@ -872,6 +872,41 @@ function display_user_checkout($mysqli, $user) {
 
 //COMPLETECHECKOUT
 
+function delete_unconfirmed_checkouts($mysqli, $user_id) {
+	$select_checkout = "SELECT * FROM checkouts 
+						INNER JOIN user_checkout
+						ON user_checkout.checkout_id = checkouts.checkout_id 
+						WHERE user_checkout.user_id = ";
+	$select_checkout.= $user_id;
+	$select_checkout.= " AND checkouts.payment_confirmed = 0";
+
+	$select_checkout_result = $mysqli->query($select_checkout);
+
+	if ($select_checkout_result->num_rows > 0){
+		$delete_product_checkout = "DELETE FROM product_checkout WHERE checkout_id IN (";
+		$delete_user_checkout = "DELETE FROM user_checkout WHERE checkout_id IN (";
+		$delete_checkout = "DELETE FROM checkouts WHERE checkout_id IN (";
+		while ($checkout = $select_checkout_result->fetch_array()) {
+			$delete_product_checkout.= $checkout['checkout_id'];
+			$delete_product_checkout.= ", ";
+			$delete_user_checkout.= $checkout['checkout_id'];
+			$delete_user_checkout.= ", ";
+			$delete_checkout.= $checkout['checkout_id'];
+			$delete_checkout.= ", ";
+		}
+		$delete_product_checkout = substr($delete_product_checkout, 0, -2);
+		$delete_product_checkout.= ")";
+		$delete_user_checkout = substr($delete_user_checkout, 0, -2);
+		$delete_user_checkout.= ")";
+		$delete_checkout = substr($delete_checkout, 0, -2);
+		$delete_checkout.= ")";
+
+		$delete_product_checkout_result = $mysqli->query($delete_product_checkout);
+		$delete_user_checkout_result = $mysqli->query($delete_user_checkout);
+		$delete_checkout_result = $mysqli->query($delete_checkout);
+	}
+}
+
 function complete_checkout($mysqli, $address, $postalcode, $user) {
 	$selected_products = array();
 
@@ -891,6 +926,8 @@ function complete_checkout($mysqli, $address, $postalcode, $user) {
         $total_amount += $selected_product['price'] * $selected_product['quantity'];
     	array_push($selected_products, $selected_product);
     }
+
+    delete_unconfirmed_checkouts($mysqli, $user['user_id']);
 
     $insert_checkout = "INSERT INTO checkouts (address, postal_code, shipment_status_id, location, total_amount) VALUES ('";
     $insert_checkout.= $_POST['address'];
@@ -973,7 +1010,7 @@ function display_user_list($mysqli) {
 		$user_item = str_replace("{NAME}", $user['name'], $user_item);
 
 		while ($checkout = $select_user_checkouts_result->fetch_array()) {
-			$checkout_link = '<a href="editcheckout?checkout_id={CHECKOUT_ID}" class="card-link checkout-link"class="card-text">{CHECKOUT_INFO}</a>';
+			$checkout_link = '<a href="editcheckout.php?checkout_id={CHECKOUT_ID}" class="card-link checkout-link"class="card-text">{CHECKOUT_INFO}</a>';
 			$checkout_info = $checkout['created_at'];
 			$checkout_info.= ", ";
 			$checkout_info.= $checkout['shipment_status'];
@@ -1422,7 +1459,7 @@ function handle_transaction_id($transaction_id, $mysqli, $user) {
 	$req.= "&tx=";
 	$req.= $transaction_id;
 	$req.= "&at=";
-	$req.= $PAYPAL_AUTH_TOKEN;
+	$req.= "W9b9px8Yu7geqreMniZAx8a0HAdoQF1uS3ygc06oHfNEjat7-GGVW1JOc2y";
 	 
 	$ch = curl_init();
 	curl_setopt($ch, CURLOPT_URL, "https://$pp_hostname/cgi-bin/webscr");
@@ -1453,8 +1490,6 @@ function handle_transaction_id($transaction_id, $mysqli, $user) {
 	    	
 	    	$delete_cart_product = "DELETE FROM cart_product WHERE user_id = "; 
 	    	$delete_cart_product.= $user['user_id'];
-	    	$delete_cart_product.= " AND product_id = ";
-	    	$delete_cart_product.= $product['product_id'];
 
 	    	$delete_cart_product_result = $mysqli->query($delete_cart_product);
 
@@ -1484,7 +1519,7 @@ function handle_transaction_id($transaction_id, $mysqli, $user) {
 function display_complete_checkout_message($key_array) {
     $checkout_message = '<h1>Checkout Successful!</h1>
 					    <p class="lead"> Thank you, {FIRSTNAME} {LASTNAME}. </p>
-					    <p class="lead"> You spent {AMOUNT} from your paypal sandbox account.</p>';
+					    <p class="lead"> You spent {AMOUNT} from your sandbox paypal account.</p>';
 
 	$search = array("{FIRSTNAME}", "{LASTNAME}", "{AMOUNT}");
 	$replace = array($key_array['first_name'], $key_array['last_name'], $key_array['mc_gross']);
