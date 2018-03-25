@@ -2,6 +2,8 @@
 require("includes/functions.php");
 session_start();
 
+check_login_redirect($_SESSION, "myusers.php");
+
 if (has_permissions($_SESSION['user']['permissions'], array(1024)) &&
  isset($_GET['edit_user']) && 
  isset($_GET['active'])) {

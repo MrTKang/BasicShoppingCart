@@ -1,6 +1,8 @@
 <?php
 require("includes/functions.php");
 session_start();
+
+check_login_redirect($_SESSION, "checkout.php");
 ?>
 
 <html lang="en">
@@ -20,9 +22,7 @@ session_start();
                 <?php 
                 if (isset($_SESSION['user'])) {
                     display_user_checkout($mysqli, $_SESSION['user']);
-                } else if (isset($_SESSION['cart'])) {
-                    display_session_checkout($mysqli, $_SESSION['cart']);
-                } 
+                }
                 ?>
 
                 <label>Address</label>

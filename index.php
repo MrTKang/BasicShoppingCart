@@ -22,6 +22,7 @@ $logged_in = is_logged_in();
 		<link rel="stylesheet" href="css/bootstrap/dist/css/bootstrap.min.css" /> 
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
 		<script src="css/bootstrap/dist/js/bootstrap.min.js"></script>
+		<link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
 		<title>Shopping Cart</title> 
 	</head> 
 	<body> 
@@ -40,7 +41,7 @@ $logged_in = is_logged_in();
 						?>
 					</div>
 					<div class="col-4 text-center">
-						<a class="blog-header-logo text-dark" href="index.php">Kevin's Store</a>
+						<a class="header-logo" href="index.php">Kevin's Store</a>
 					</div>
 					<div class="col-4 d-flex justify-content-end align-items-center">
 						<a class="text-muted" href="#">

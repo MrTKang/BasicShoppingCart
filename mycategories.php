@@ -1,7 +1,7 @@
 <?php
 require("includes/functions.php");
 session_start();
-
+check_login_redirect($_SESSION, "mycategories.php");
 if (has_permissions($_SESSION['user']['permissions'], array(32))) {
     create_category($mysqli);
 }

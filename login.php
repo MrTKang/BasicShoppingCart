@@ -20,8 +20,10 @@ if (isset($_COOKIE['login'])) {
     $user_email = $_COOKIE['login'];
 }
 
-if (isset($_SESSION['user'])) {
-    header("Location: index.php");
+if (isset($_SESSION['user']) && isset($_POST['directurl'])) {
+    $directurl = "Location: ";
+    $directurl.= $_POST['directurl'];
+    header($directurl);
 }
 ?>
 
@@ -39,11 +41,24 @@ if (isset($_SESSION['user'])) {
     <body>
         <div class="login-container">
             <form class="login-form" method="post" action="login.php">
-                <h1><?php echo $error_message ?></h1>
+                <h1>
+                <?php 
+                    if (isset($_GET['login-required'])) {
+                        echo("Please login first");
+                    } 
+                ?></h1>
                 <label>Email</label>
                 <input type="email" name="email" class="form-control" required="" value="<?php echo $user_email ?>" autofocus="">
                 <label>Password</label>
                 <input type="password" name="password" class="form-control" required="">
+                <input type="hidden" name="directurl" 
+                value="<?php
+                if (isset($_GET['login_required'])) {
+                    echo($_GET['login_required']);
+                } else {
+                    echo('index.php');
+                }
+                ?>" class="form-control" required="">
                 <div class="checkbox mb-3">
                     <label>
                         <input type="checkbox" name="remember_email" value="remember_email"> Remember me
@@ -51,7 +66,7 @@ if (isset($_SESSION['user'])) {
                 </div>
                 <button class="btn btn-lg btn-primary btn-block" name="submit" >Sign in</button>
                 <a href="signup.php">Sign Up</a>
-                <a href="forgotpassword.php">Forgot Password</a>
+                <a href="forgotpassword.php" class="forgot-password">Forgot Password</a>
                 <p class="mt-5 mb-3 text-muted">© 2017-2018</p>
             </form>
         </div>

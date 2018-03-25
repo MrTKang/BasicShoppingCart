@@ -5,7 +5,7 @@ session_start();
 
 $status = sign_up_user($mysqli, $GMAIL_ACCOUNT, $GMAIL_PASSWORD, $_POST);
     if (isset($_POST['resend']) && isset($_SESSION['confirmation_email'])) {
-        resend_email($mysqli, $GMAIL_ACCOUNT, $GMAIL_PASSWORD);
+        resend_email($mysqli, $_SESSION['confirmation_email'], $GMAIL_ACCOUNT, $GMAIL_PASSWORD);
 }
 ?>
 

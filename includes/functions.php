@@ -3,11 +3,11 @@
 require("includes/connection.php");
 require("includes/credentials.php");
 require_once("vendor/autoload.php");
+require("includes/dbfunctions.php");
 
 //PRODUCTS
 function display_products($mysqli) {
 	$select_products = "SELECT * FROM products WHERE available = 1 ORDER BY name ASC";
-	
 	$select_products_result = $mysqli->query($select_products);
 
 	while ($product = $select_products_result->fetch_array()) {
@@ -16,21 +16,13 @@ function display_products($mysqli) {
 }
 
 function display_products_from_category($mysqli, $category) {
-	$select_products = "SELECT products.name, products.price, products.image, products.product_id FROM products ";
-	$select_products.= "INNER JOIN category_product ";
-	$select_products.= "ON category_product.product_id = products.product_id ";
-	$select_products.= "INNER JOIN categories ";
-	$select_products.= "ON categories.category_id = category_product.category_id WHERE categories.name = '";
-	$select_products.= $_GET['category'];
-	$select_products.= "' and products.available = 1 ORDER BY name ASC";
-
-	$select_products_result = $mysqli->query($select_products);
+	$select_products_result = select_products_by_category($mysqli, $category);
 
 	while ($product = $select_products_result->fetch_array()) {
 		display_product($product);
 	}  
-
 }
+
 
 function display_product($product){
 	$product_div = '
@@ -54,36 +46,19 @@ function display_product($product){
 
 function add_to_cart($mysqli, $product_id, $session) {
 	if (isset($session['user'])) {
-		$select_cart_products = "SELECT * FROM cart_product WHERE user_id = ";
-		$select_cart_products.= $session['user']['user_id'];
-		$select_cart_products.= " AND product_id = ";
-		$select_cart_products.= $product_id;
-		$select_cart_products.= " LIMIT 1";
-
-		$select_cart_products_result = $mysqli->query($select_cart_products);
+		$select_cart_products_result = select_cart_product_by_user_product($mysqli, $session['user']['user_id'], $product_id);
 
 		if ($select_cart_products_result->num_rows > 0) {
 			$update_cart_product = "UPDATE cart_product SET quantity = quantity + 1";
 			$update_cart_product_result = $mysqli->query($update_cart_product);
 		} else {
-			$insert_cart_product = "INSERT INTO cart_product (product_id, user_id, quantity) VALUES (";
-			$insert_cart_product.= $product_id;
-			$insert_cart_product.= ", ";
-			$insert_cart_product.= $session['user']['user_id'];
-			$insert_cart_product.= ", ";
-			$insert_cart_product.= 1;
-			$insert_cart_product.= ")";
-
-			$insert_cart_product_result = $mysqli->query($insert_cart_product);
+			$insert_cart_product_result = insert_cart_product($mysqli, $session['user']['user_id'], $product_id,  1);
 		}
 
 	} else if (isset($session['cart'][$product_id])) {
 		$session['cart'][$product_id]['quantity']++;
 	} else {
-		$select_product = "SELECT * FROM products WHERE product_id = ";
-		$select_product.= $product_id;
-
-		$select_product_result = $mysqli->query($select_product);
+		$select_product_result = select_product($mysqli, $product_id);
 		if ($select_product_result->num_rows != 0) {
 			$product = $select_product_result->fetch_array();
 			$session['cart'][$product['product_id']] = array("quantity" => 1, "price" => $product['price']);
@@ -104,44 +79,16 @@ function edit_session_cart($cart, $post_quantities) {
 }
 
 function edit_user_cart($mysqli, $user, $post_quantities) {
-	print_r($post_quantities);
-	$select_cart_products = "SELECT * FROM cart_product WHERE user_id = ";
-	$select_cart_products.= $user['user_id'];
-	$select_cart_products.= " AND product_id in (";
-
-	foreach ($post_quantities as $key => $value) {
-		$select_cart_products.= $key;
-		$select_cart_products.= ", ";
-	}
-	$select_cart_products = substr($select_cart_products, 0, -2);
-	$select_cart_products.= ")";
-
-	$select_cart_products_result = $mysqli->query($select_cart_products);
-
-
+	$select_cart_products_result = select_cart_products($mysqli, $user['user_id'], $post_quantities);
 	while ($cart_product = $select_cart_products_result->fetch_array()) {
 		if ($post_quantities[$cart_product['product_id']] == 0) {
 			delete_cart_product($mysqli, $user['user_id'], $cart_product['product_id']);
 		} else {
-			$update_cart_product = "UPDATE cart_product SET quantity = ";
-			$update_cart_product.= $post_quantities[$cart_product['product_id']];
-			$update_cart_product.= " WHERE user_id = ";
-			$update_cart_product.= $user['user_id'];
-			$update_cart_product.= " AND product_id = ";
-			$update_cart_product.= $cart_product['product_id'];
-			$update_cart_product_result = $mysqli->query($update_cart_product);
+			update_cart_product($mysqli, $user['user_id'], $product_id, $quantity);
 		}
 	}
 }
 
-function delete_cart_product($mysqli, $user_id, $product_id) {
-	$delete_cart_product = "DELETE FROM cart_product WHERE user_id = ";
-	$delete_cart_product.= $user_id;
-	$delete_cart_product.= " AND product_id = ";
-	$delete_cart_product.= $product_id;
-
-	$delete_cart_product_result = $mysqli->query($delete_cart_product);
-}
 
 function is_logged_in() {
 	if (isset($_GET['logout'])) {
@@ -167,13 +114,7 @@ function display_categories($mysqli, $categoryname) {
 }
 
 function display_user_cart($mysqli, $user) {
-	$select_cart_products = "SELECT * FROM cart_product 
-							INNER JOIN products
-							ON cart_product.product_id = products.product_id 
-							WHERE user_id = ";
-	$select_cart_products.= $user['user_id'];
-
-	$select_cart_products_result = $mysqli->query($select_cart_products);
+	$select_cart_products_result = select_cart_product($mysqli, $user['user_id']);
 
 	$cart_products = array();
 
@@ -187,14 +128,7 @@ function display_user_cart($mysqli, $user) {
 }
 
 function display_session_cart($mysqli, $cart) {
-	$select_products = "SELECT * FROM products WHERE product_id IN (";
-	foreach ($cart as $id => $value){
-		$select_products.=$id;
-		$select_products.=", ";
-	}
-	$select_products = substr($select_products, 0, -2);
-	$select_products.= ") ORDER BY name ASC";
-	$products_result = $mysqli->query($select_products);
+	$products_result = select_products_from_cart($mysqli, $cart);
 
 	$products = array();
 	while ($product = $products_result->fetch_array()) {
@@ -237,56 +171,27 @@ function sign_up_user($mysqli, $gmail_account, $gmail_password, $post) {
 	    	'signed_up' => FALSE);
 
 	} else if (isset($post['submit']) && $post['password'] == $post['passwordagain']){
-
 	    if (strlen($post['password']) < 8) {
 	        $error_message.= "Your Password Must Contain At Least 8 Characters!";
 	    }
 	    else if (!preg_match("#[0-9]+#",$post['password'])) {
 	        $error_message.= "Your Password Must Contain At Least 1 Number!";
-	    }
-	    else if (!preg_match("#[A-Z]+#",$post['password'])) {
-	        $error_message.= "Your Password Must Contain At Least 1 Capital Letter!";
-	    }
-	    else if (!preg_match("#[a-z]+#",$post['password'])) {
-	        $error_message.= "Your Password Must Contain At Least 1 Lowercase Letter!";
 	    } else {
-			$select_user = "SELECT * FROM users WHERE email='";
-			$select_user.= $post['email'];
-			$select_user.= "'";
-			$select_user_result = $mysqli->query($select_user);
-
+			$select_user_result = select_user_by_email($mysqli, $post['email']);
 			if ($select_user_result->num_rows != 0){
 		    	return info_array("could not process", "The email you submitted is already in use", FALSE);
-
 			} else {
-			    $insert_user = "INSERT INTO users (name, email, password) VALUES ('";
-			    $insert_user.= $post['name'];
-			    $insert_user.= "', '";
-			    $insert_user.= $post['email'];
-			    $insert_user.= "', MD5('";
-			    $insert_user.= $post['password'];
-			    $insert_user.= "'))";
+				$insert_user_result = insert_user($mysqli, $post['name'], $post['email'], $post['password']);
 
-			    if ($mysqli->query($insert_user)!==TRUE) {
+			    if (!$insert_user_result) {
 		    		return info_array("could not process", $mysqli->error, FALSE);	    		
 			    }
 			    $user_id = $mysqli->insert_id;
 
-			    //Make Confirmation Key
 			    $confirmation_key = md5($post['name'].$post['email'].date("Ymd"));
-			    //Save it to database
-			    $insert_confirmation_key = "INSERT INTO confirmation_key (user_id, confirmation_key, email) VALUES (";
-			    $insert_confirmation_key.= $user_id;
-			    $insert_confirmation_key.= ", '";
-			    $insert_confirmation_key.= $confirmation_key;
-			    $insert_confirmation_key.= "', '";
-			    $insert_confirmation_key.= $post['email'];
-			    $insert_confirmation_key.= "')";
-
-			    $insert_confirmation_key_result = $mysqli->query($insert_confirmation_key);
+			    $insert_confirmation_key_result = insert_confirmation_key($mysqli, $user_id, $confirmation_key, $post['email']);
 			    
-			    //Set up template
-			    if ($insert_confirmation_key_result === TRUE) {
+			    if ($insert_confirmation_key_result) {
 					$template = file_get_contents("signup_email_confirmation_template.txt");
 			    	send_email($post['email'], $post['name'], $confirmation_key, $gmail_account, $gmail_password, $template, "Welcome to Kevin's Store");
 			        $message.= "Please check your email at ";
@@ -326,12 +231,8 @@ function send_email($email, $name, $key, $gmail_account, $gmail_password, $email
 	$send_result = $mailer->send($email_message);
 }
 
-function resend_email($mysqli, $gmail_account, $gmail_password) {
-	$select_confirmation_key = "SELECT * FROM confirmation_key WHERE email='";
-	$select_confirmation_key.= $_SESSION['confirmation_email'];
-	$select_confirmation_key.= "' LIMIT 1";
-
-	$select_confirmation_key_result = $mysqli->query($select_confirmation_key);
+function resend_email($mysqli, $user_email, $gmail_account, $gmail_password) {
+	$select_confirmation_key_result = select_confirmation_key_by_email($mysqli, $user_email);
 
 	$confirmation_key = $select_confirmation_key_result->fetch_array();
 	$template = file_get_contents("signup_email_confirmation_template.txt");
@@ -386,50 +287,8 @@ function transfer_cart($mysqli, $user_id, $cart) {
 	return $inserted;
 }
 
-function insert_cart_product($mysqli, $user_id, $product_id, $quantity){
-	$insert_cart_product = "INSERT INTO cart_product (product_id, user_id, quantity) VALUES (";
-	$insert_cart_product.= $product_id;
-	$insert_cart_product.= ", ";
-	$insert_cart_product.= $user_id;
-	$insert_cart_product.= ", ";
-	$insert_cart_product.= $product['quantity'];
-	$insert_cart_product.= ")";
-
-	$insert_cart_product_result = $mysqli->query($insert_cart_product);
-		
-	return (($insert_cart_product_result) ? true : false);
-}
-
-function update_cart_product($mysqli, $user_id, $product_id, $quantity) {
-	$update_cart_product = "UPDATE cart_product SET quantity = quantity + ";
-	$update_cart_product.= $quantity;
-	$update_cart_product.= " WHERE user_id = ";
-	$update_cart_product.= $user_id;
-	$update_cart_product.= " AND product_id = ";
-	$update_cart_product.= $product_id;
-
-	$update_cart_product_result = $mysqli->query($update_cart_product);
-
-	return (($update_cart_product_result) ? true : false);
-}
-
-function exists_cart_product($mysqli, $user_id, $product_id) {
-	$select_cart_product = "SELECT * FROM cart_product WHERE user_id = ";
-	$select_cart_product.= $user_id;
-	$select_cart_product.= " AND product_id = ";
-	$select_cart_product.= $product_id;
-
-	$select_cart_product_result = $mysqli->query($select_cart_product);
-
-	return ($select_cart_product_result->num_rows > 0);
-}
-
 function login_user($mysqli, $password, $email, $remember_email) {
-    $select_user = "SELECT * FROM users WHERE email = '";
-    $select_user.= $email;
-    $select_user.= "'";
-
-    $select_user_result = $mysqli->query($select_user);
+    $select_user_result = select_user_by_email($mysqli, $email);
     if ($select_user_result->num_rows == 1) {
         $login_user = $select_user_result->fetch_array();
 
@@ -448,27 +307,14 @@ function login_user($mysqli, $password, $email, $remember_email) {
 }
 
 function confirm_user_email($mysqli, $email, $key) {
-    $select_confirmation_key = "SELECT * FROM confirmation_key WHERE email ='";
-    $select_confirmation_key.= $email;
-    $select_confirmation_key.= "' AND confirmation_key = '";
-    $select_confirmation_key.= $key;
-    $select_confirmation_key.= "' LIMIT 1";
-    $select_confirmation_key_result = $mysqli->query($select_confirmation_key);
-
+    $select_confirmation_key_result = select_confirmation_key_by_email_key($mysqli, $key, $email);
 
     if ($select_confirmation_key_result->num_rows != 0) {
         $user_id = $select_confirmation_key_result->fetch_array()['user_id'];
-        $delete_confirmation_key = "DELETE FROM confirmation_key WHERE user_id =";
-        $delete_confirmation_key.= $user_id;
-        $delete_confirmation_key.= " LIMIT 1";
-        $delete_confirmation_key_result = $mysqli->query($delete_confirmation_key);
-
+        $delete_confirmation_key_result = delete_confirmation_key($mysqli, $user_id);
 
         if ($delete_confirmation_key_result === TRUE) {
-            $update_user = "UPDATE users SET email_confirmed = 1 WHERE user_id = ";
-            $update_user.= $user_id;
-
-            $update_user_result = $mysqli->query($update_user);
+            $update_user_result = update_user_email_confirmation($mysqli, $user_id, 1);
         }
 
         $error_message = $mysqli->error;
@@ -478,25 +324,10 @@ function confirm_user_email($mysqli, $email, $key) {
 //MYACCOUNT
 
 function display_my_checkouts($mysqli, $user) {
-
-    $select_user_checkouts = "SELECT user_checkout.checkout_id, checkouts.created_at, checkouts.location, shipment_status.shipment_status FROM user_checkout ";
-    $select_user_checkouts.= "INNER JOIN checkouts ";
-    $select_user_checkouts.= "ON checkouts.checkout_id = user_checkout.checkout_id ";
-    $select_user_checkouts.= "INNER JOIN shipment_status ";
-    $select_user_checkouts.= "ON shipment_status.shipment_status_id = checkouts.shipment_status_id ";
-    $select_user_checkouts.= "WHERE user_checkout.user_id=";
-    $select_user_checkouts.= $user['user_id'];
-
-    $select_user_checkouts_result = $mysqli->query($select_user_checkouts);
+    $select_user_checkouts_result = select_checkouts_by_user($mysqli, $user['user_id']);
 
     while ($checkout = $select_user_checkouts_result->fetch_array()){
-        $select_products = "SELECT * FROM products ";
-        $select_products.= "INNER JOIN product_checkout ";
-        $select_products.= "ON products.product_id=product_checkout.product_id ";
-        $select_products.= "WHERE product_checkout.checkout_id=";
-        $select_products.= $checkout['checkout_id'];
-
-        $select_products_result = $mysqli->query($select_products);
+        $select_products_result = select_products_by_checkout($mysqli, $checkout['checkout_id']);
 
     	$checkout_card = '<div class="card">
         <div class="card-body">
@@ -537,18 +368,11 @@ function display_my_checkouts($mysqli, $user) {
 //MYPRODUCTS
 
 function add_inventory($mysqli, $product_id, $quantity) {
-	$select_product = "SELECT * FROM products WHERE product_id = ";
-	$select_product.= $product_id;
-	$select_product_result = $mysqli->query($select_product);
+	$select_product_result = select_product($product_id);
 
 	$product = $select_product_result->fetch_array();
 
-	$update_product = "UPDATE products SET inventory = ";
-	$update_product.= $product['inventory'] + $quantity;
-	$update_product.= " WHERE product_id = ";
-	$update_product.= $product_id;
-
-	$update_product_result = $mysqli->query($update_product);
+	$update_product_result = update_product_inventory($mysqli, $product['inventory'] + $quantity, $product_id);
 }
 
 function display_my_product($product) {
@@ -583,14 +407,8 @@ function display_all_products($mysqli) {
 	}
 }
 
-function display_my_products($mysqli) {
-    $select_user_product = "SELECT * FROM user_product ";
-    $select_user_product.= "INNER JOIN products ";
-    $select_user_product.= "ON user_product.product_id = products.product_id ";
-    $select_user_product.= "WHERE user_product.user_id = ";
-    $select_user_product.= $_SESSION['user']['user_id'];
-
-    $select_user_product_result = $mysqli->query($select_user_product);
+function display_my_products($mysqli, $user_id) {
+    $select_user_product_result = select_products_by_user($mysqli, $user_id);
 
     while ($product = $select_user_product_result->fetch_array()) {
  		display_my_product($product);
@@ -617,47 +435,20 @@ function create_product($mysqli, $user, $product_post, $filename, $tempfilename)
     } else {
         echo "Sorry, there was an error uploading your file.";
     } 
-
-    $insert_product = "INSERT INTO products (name, description, price, image) VALUES ('";
-    $insert_product.= $product_post['name'];
-    $insert_product.= "', '";
-    $insert_product.= $product_post['description'];
-    $insert_product.= "', ";
-    $insert_product.= $product_post['price'];
-    $insert_product.= ", '";
-    $insert_product.= $target_file;
-    $insert_product.= "')";
-
-    $insert_product_result = $mysqli->query($insert_product);
+    $insert_product_result = insert_product($product_post['name'], $product_post['description'], $product_post['price'], $target_file);
     $product_id = $mysqli->insert_id;
 
-    $insert_user_product = "INSERT INTO user_product (user_id, product_id) VALUES (";
-    $insert_user_product.= $user['user_id'];
-    $insert_user_product.= ",";
-    $insert_user_product.= $product_id;
-    $insert_user_product.= ")";
+    $insert_user_product_result = insert_user_product($user['user_id'], $product_id);
 
-    $insert_user_product_result = $mysqli->query($insert_user_product);
-
-    $select_category_id = "SELECT category_id FROM categories WHERE name = '";
-    $select_category_id.= $product_post['category'];
-    $select_category_id.= "'";
-
-    $select_category_id_result = $mysqli->query($select_category_id);
+    $select_category_id_result = select_category_by_name($mysqli, $product_post['category']);
 
     $category = $select_category_id_result->fetch_array();
     $category_id = $category['category_id'];
 
-    $insert_category_product = "INSERT INTO category_product(category_id, product_id) VALUES (";
-    $insert_category_product.= $category_id;
-    $insert_category_product.= ", ";
-    $insert_category_product.= $product_id;
-    $insert_category_product.= ")";
-
-    $insert_category_product_result = $mysqli->query($insert_category_product);
+    $insert_category_product_result = insert_category_product($mysqli, $category_id, $product_id);
 
 }
-
+//?????
 function set_product_availability($mysqli, $product_id, $availability){
 	$update_product = "UPDATE products SET available = ";
 	$update_product.= $availability;
@@ -679,26 +470,15 @@ function display_category_form($mysqli) {
 
 
 //EDITPRODUCT
-
+//TODO
 function edit_product($mysqli, $product_id, $product_info) {
-	$update_product = "UPDATE products SET name = '";
-	$update_product.= $product_info['name'];
-	$update_product.= "', price = ";
-	$update_product.= $product_info['price'];
-	$update_product.= ", description = '";
-	$update_product.= $product_info['description'];
-	$update_product.= "' WHERE product_id = ";
-	$update_product.= $product_id;
-
-	$update_product_result = $mysqli->query($update_product);
+	$update_product_result = update_product($mysqli, $product_id, $product_info['name'], $product_info['price'], $description);
+	return $update_product_result;
 }
 
-function display_edit_product_form($mysqli, $product_id) {
-	$select_product = "SELECT * FROM products WHERE product_id = ";
-	$select_product.= $product_id;
-	$select_product.= " LIMIT 1";
 
-	$select_product_result = $mysqli->query($select_product);
+function display_edit_product_form($mysqli, $product_id) {
+	$select_product_result = select_product($mysqli, $product_id);
 
 	$product = $select_product_result->fetch_array();
 
@@ -724,32 +504,20 @@ function display_edit_product_form($mysqli, $product_id) {
 
 function create_category($mysqli) {
 	if (isset($_SESSION['user']) && isset($_POST['category'])) {
-	    $insert_category = "INSERT INTO categories (name) VALUES ('";
-	    $insert_category.= $_POST['name'];
-	    $insert_category.= "')";
-
-	    $insert_category_result = $mysqli->query($insert_category);
+	    $insert_category_result = insert_category($mysqli, $_POST['name']);
 	}
 }
 
 function display_category_list($mysqli) {
-	$select_categories = "SELECT * FROM categories";
-	$select_categories_result = $mysqli->query($select_categories);
+	$select_categories_result = select_categories($mysqli);
 
 	while ($category = $select_categories_result->fetch_array()) {
 		$category_item = '<div class="card category-item"><div class="card-body">
 	        <h6 class="card-title">{NAME}</h6>
 	        <p class="card-text">{PRODUCTS}</p>';
 
-		$select_products = "SELECT products.name FROM products ";
-		$select_products.= "INNER JOIN category_product ";
-		$select_products.= "ON category_product.product_id = products.product_id ";
-		$select_products.= "INNER JOIN categories ";
-		$select_products.= "ON categories.category_id = category_product.category_id WHERE categories.name = '";
-		$select_products.= $category['name'];
-		$select_products.= "'";
 
-		$select_products_result = $mysqli->query($select_products);
+		$select_products_result = select_products_by_category($mysqli, $category['name']);
 		$products = "";
 		while ($product = $select_products_result->fetch_array()) {
 			$products.= $product['name'];
@@ -782,16 +550,11 @@ function set_category_activity($mysqli, $category_id, $activity){
 	$update_category.= $category_id;
 
 	$update_category_result = $mysqli->query($update_category);
-
 }
 
+
 function display_edit_category_form($mysqli, $category_id) {
-	$select_category = "SELECT * FROM categories WHERE category_id = ";
-	$select_category.= $category_id;
-	$select_category.= " LIMIT 1";
-
-	$select_category_result = $mysqli->query($select_category);
-
+	$select_category_result = select_category($mysqli, $category_id);
 	$category = $select_category_result->fetch_array();
 
     $edit_category_form = '<form id="edit_category_form" class="edit-category-form" method="post" action="editcategory.php?category_id={CATEGORY_ID}">
@@ -809,25 +572,13 @@ function display_edit_category_form($mysqli, $category_id) {
 }
 
 function edit_category($mysqli, $category_id, $info) {
-	$update_category = "UPDATE categories SET name ='";
-	$update_category.= $info['name'];
-	$update_category.= "' WHERE category_id = ";
-	$update_category.= $category_id;
-
-	$update_category_result = $mysqli->query($update_category);
+	$update_category_result = update_category($mysqli, $category_id, $info['name']);
 }
-
 //CHECKOUT
 
+//DEP
 function display_session_checkout($mysqli, $cart) {
-    $select_products = "SELECT * FROM products WHERE product_id IN (";
-    foreach ($cart as $product_id => $quantity) {
-        $select_products.= $product_id;
-        $select_products.= ", ";
-    }
-    $select_products = substr($select_products, 0, -2);
-    $select_products.= ")";
-    $select_products_result = $mysqli->query($select_products);
+    $select_products_result = select_products_from_cart($mysqli, $cart);
     $total_price = 0;
     while ($product = $select_products_result->fetch_array()) {
         $quantity = $cart[$product['product_id']]['quantity'];
@@ -846,13 +597,7 @@ function display_session_checkout($mysqli, $cart) {
 }
 
 function display_user_checkout($mysqli, $user) {
-	$select_products = "SELECT * FROM products
-							INNER JOIN cart_product
-							ON products.product_id = cart_product.product_id 
-							WHERE cart_product.user_id = ";
-	$select_products.= $user['user_id'];
-
-	$select_products_result = $mysqli->query($select_products);
+	$select_products_result = select_products_by_cart_user($mysqli, $user['user_id']);
 
 	$total_price = 0;
 	while ($product = $select_products_result->fetch_array()) {
@@ -869,57 +614,13 @@ function display_user_checkout($mysqli, $user) {
     $total_price_line = str_replace("{TOTAL_PRICE}", number_format($total_price, 2, '.', ''), $total_price_line);
     echo($total_price_line);
 }
-
 //COMPLETECHECKOUT
-
-function delete_unconfirmed_checkouts($mysqli, $user_id) {
-	$select_checkout = "SELECT * FROM checkouts 
-						INNER JOIN user_checkout
-						ON user_checkout.checkout_id = checkouts.checkout_id 
-						WHERE user_checkout.user_id = ";
-	$select_checkout.= $user_id;
-	$select_checkout.= " AND checkouts.payment_confirmed = 0";
-
-	$select_checkout_result = $mysqli->query($select_checkout);
-
-	if ($select_checkout_result->num_rows > 0){
-		$delete_product_checkout = "DELETE FROM product_checkout WHERE checkout_id IN (";
-		$delete_user_checkout = "DELETE FROM user_checkout WHERE checkout_id IN (";
-		$delete_checkout = "DELETE FROM checkouts WHERE checkout_id IN (";
-		while ($checkout = $select_checkout_result->fetch_array()) {
-			$delete_product_checkout.= $checkout['checkout_id'];
-			$delete_product_checkout.= ", ";
-			$delete_user_checkout.= $checkout['checkout_id'];
-			$delete_user_checkout.= ", ";
-			$delete_checkout.= $checkout['checkout_id'];
-			$delete_checkout.= ", ";
-		}
-		$delete_product_checkout = substr($delete_product_checkout, 0, -2);
-		$delete_product_checkout.= ")";
-		$delete_user_checkout = substr($delete_user_checkout, 0, -2);
-		$delete_user_checkout.= ")";
-		$delete_checkout = substr($delete_checkout, 0, -2);
-		$delete_checkout.= ")";
-
-		$delete_product_checkout_result = $mysqli->query($delete_product_checkout);
-		$delete_user_checkout_result = $mysqli->query($delete_user_checkout);
-		$delete_checkout_result = $mysqli->query($delete_checkout);
-	}
-}
 
 function complete_checkout($mysqli, $address, $postalcode, $user) {
 	$selected_products = array();
-
-	$select_products = "SELECT * FROM products
-							INNER JOIN cart_product
-							ON products.product_id = cart_product.product_id 
-							WHERE cart_product.user_id = ";
-	$select_products.= $user['user_id'];
-	$select_products_result = $mysqli->query($select_products);
-    
-    $total_amount = 0;
+	$select_products_result = select_products_by_cart_user($mysqli, $user['user_id']);
     while ($selected_product = $select_products_result->fetch_array()){
-    	if ($selected_product['inventory'] < $product['quantity']) {
+    	if ($selected_product['inventory'] < $selected_product['quantity']) {
     		echo("not enough inventory");
     		return;
     	}
@@ -929,65 +630,28 @@ function complete_checkout($mysqli, $address, $postalcode, $user) {
 
     delete_unconfirmed_checkouts($mysqli, $user['user_id']);
 
-    $insert_checkout = "INSERT INTO checkouts (address, postal_code, shipment_status_id, location, total_amount) VALUES ('";
-    $insert_checkout.= $_POST['address'];
-    $insert_checkout.= "', '";
-    $insert_checkout.= $_POST['postalcode'];
-    $insert_checkout.= "', 0, 'my store', ";
-    $insert_checkout.= $total_amount;
-    $insert_checkout.= ")";
-    $insert_checkout_result = $mysqli->query($insert_checkout);
+    $insert_checkout_result = insert_checkout($mysqli, $address, $postalcode, $total_amount);
 
     $checkout_id = $mysqli->insert_id;
 
     foreach ($selected_products as $product) {
 
-        $insert_product_checkout = "INSERT INTO product_checkout (product_id, checkout_id, quantity) VALUES (";
-        $insert_product_checkout.= $product['product_id'];
-        $insert_product_checkout.= ",";
-        $insert_product_checkout.= $checkout_id;
-        $insert_product_checkout.= ",";
-        $insert_product_checkout.= $product['quantity'];
-        $insert_product_checkout.= ")";
+    	$insert_product_checkout_result = insert_product_checkout($mysqli, $product['product_id'], $checkout_id, $product['quantity']);
 
-        $insert_product_checkout_result = $mysqli->query($insert_product_checkout);
 
-        $update_product_inventory = "UPDATE products SET inventory = ";
-        $update_product_inventory.= $selected_products[$product_id]['inventory'] - $product['quantity'];
-        $update_product_inventory.= " WHERE product_id = ";
-        $update_product_inventory.= $product['product_id'];
-        
-        $update_product_inventory_result = $mysqli->query($update_product_inventory);
+        $update_product_inventory_result = update_product_inventory($mysqli, 
+        								$product['inventory'] - $product['quantity'],
+        								$product['product_id']);
 	}
 
-    $insert_user_checkout = "INSERT INTO user_checkout (user_id, checkout_id) VALUES (";
-    $insert_user_checkout.= $_SESSION['user']['user_id'];
-    $insert_user_checkout.= ", ";
-    $insert_user_checkout.= $checkout_id;
-    $insert_user_checkout.= ")";
-
-    $insert_user_checkout_result = $mysqli->query($insert_user_checkout);
+    $insert_user_checkout_result = insert_user_checkout($mysqli, $user['user_id'], $checkout_id);
 
     return $total_amount;
 }
 
-function display_donation_amount($mysqli, $user) {
-	$select_amount = "SELECT SUM(quantity * price) AS amount FROM cart_product 
-						INNER JOIN products
-						ON products.product_id = cart_product.product_id
-						WHERE cart_product.user_id = ";
-	$select_amount.= $user['user_id'];
-
-	$select_amount_result = $mysqli->query($select_amount);
-	$amount = $select_amount_result->fetch_array()['amount'];
-
-	$donation_input = '<input type="text" id="amount" name="amount" value="{AMOUNT}">';
-	$donation_input = str_replace("{AMOUNT}", $amount, $donation_input);
-
-	echo($donation_input);
-}
 
 //MYUSERS
+
 
 function display_user_list($mysqli) {
 	$select_user = "SELECT * FROM users";
@@ -995,15 +659,8 @@ function display_user_list($mysqli) {
 	$select_user_result = $mysqli->query($select_user);
 
 	while ($user = $select_user_result->fetch_array()) {
-		$select_user_checkouts = "SELECT * FROM user_checkout 
-									INNER JOIN checkouts 
-									ON user_checkout.checkout_id = checkouts.checkout_id 
-									INNER JOIN shipment_status
-									ON checkouts.shipment_status_id = shipment_status.shipment_status_id
-									WHERE user_checkout.user_id = ";
-		$select_user_checkouts.= $user['user_id'];
 
-		$select_user_checkouts_result = $mysqli->query($select_user_checkouts);
+		$select_user_checkouts_result = select_user_checkouts($mysqli, $user['user_id']);
 
 		$user_item = '<div class="card user-item"><div class="card-body">
 	        <h6 class="card-title">{NAME}</h6>';
@@ -1039,7 +696,7 @@ function display_user_list($mysqli) {
 	}
 }
 
-
+//??
 function set_user_activity($mysqli, $user_id, $activity){
 	$update_user = "UPDATE users SET active = ";
 	$update_user.= $activity;
@@ -1086,7 +743,7 @@ function display_edit_user_form($mysqli, $user_id) {
     <label for="name">Email</label>
     <input type="text" class="form-control" name="email" required="" autofocus="" value="{EMAIL}">
 	<div class="form-check">
-		<input class="form-check-input" type="checkbox" name="permissions" value=1 {ADD_PRODUCTS}>
+		<input class="form-check-input" type="checkbox" name="permissions[]" value=1 {ADD_PRODUCTS}>
 		<label class="form-check-label" for="add-products">ADD PRODUCTS</label>
 	</div>
 	<div class="form-check">
@@ -1148,36 +805,13 @@ function display_edit_user_form($mysqli, $user_id) {
 
 
 function edit_user($mysqli, $user_id, $info) {
-	$update_user = "UPDATE users SET name = '";
-	$update_user.= $info['name'];
-	$update_user.= "', email = '";
-	$update_user.= $info['email'];
-	$update_user.= "', permissions = ";
-
-	$permission = 0;
-
-	foreach ($info['permissions'] as $permission_bit) {
-		$permission += $permission_bit;
-	}
-
-	$update_user.= $permission;
-	$update_user.= " WHERE user_id = ";
-	$update_user.= $user_id;
-
-	$update_user_result = $mysqli->query($update_user);
+	$update_user_result = update_user($mysqli, $user_id, $info['name'], $info['email'], $info['permissions']);
 }
 
 //EDITCHECKOUTS
 
 function display_edit_checkout_form($mysqli, $checkout_id) {
-	$select_checkouts = "SELECT * FROM checkouts
-							INNER JOIN shipment_status 
-							ON checkouts.shipment_status_id = shipment_status.shipment_status_id
-							WHERE checkouts.checkout_id =";
-	$select_checkouts.= $checkout_id;
-
-	$select_checkouts_result = $mysqli->query($select_checkouts);
-
+	$select_checkouts_result = select_checkout($mysqli, $checkout_id);
 	$checkout = $select_checkouts_result->fetch_array();
 
     $edit_checkout_form = '<form id="edit_checkout_form" class="edit-product-form" method="post" action="editcheckout.php?checkout_id={CHECKOUT_ID}">
@@ -1218,26 +852,13 @@ function display_edit_checkout_form($mysqli, $checkout_id) {
 }
 
 function edit_checkout($mysqli, $checkout_id, $info) {
-	$update_checkout = "UPDATE checkouts SET ship_by = '";
-
 	$ship_by_datetime = new DateTime($info['ship_by']);
 
-	$update_checkout.= $ship_by_datetime->format('Y-m-d H:i:s');
-	$update_checkout.= "', address = '";
-	$update_checkout.= $info['address'];
-	$update_checkout.= "', postal_code = '";
-	$update_checkout.= $info['postal_code'];
-	$update_checkout.= "', shipment_status_id = ";
-	$update_checkout.= $info['shipment_status_id'];
-	$update_checkout.= ", location = '";
-	$update_checkout.= $info['location'];
-	$update_checkout.= "' WHERE checkout_id = ";
-	$update_checkout.= $checkout_id;
-
-	$update_checkout_result = $mysqli->query($update_checkout);
+	$update_checkout_result = update_checkout($mysqli, $ship_by_datetime->format('Y-m-d H:i:s'),
+	 									$info['address'], $info['postal_code'], $info['shipment_status_id'], 
+	 									$info['location'], $checkout_id);
 
 }
-
 //PERMISSIONS
 
 function has_permissions($user_permissions, $permissions) {
@@ -1249,14 +870,10 @@ function has_permissions($user_permissions, $permissions) {
 }
 
 function owns_product($mysqli, $user_id, $product_id) {
-	$select_user_product = "SELECT * FROM user_product WHERE user_id = ";
-	$select_user_product.= $user_id;
-	$select_user_product.= " AND product_id = ";
-	$select_user_product.= $product_id;
-
-	$select_user_product_result = $mysqli->query($select_user_product);
+	$select_user_product_result = select_user_product($mysqli, $user_id, $product_id);
 	return ($select_user_product_result->num_rows == 1);
 }
+
 
 function can_edit_product($mysqli, $user, $product_id) {
 	return (has_permissions($user['permisssions'], array(4)) || 
@@ -1266,15 +883,7 @@ function can_edit_product($mysqli, $user, $product_id) {
 //RESETPASSWORD
 
 function display_password_reset_form($mysqli, $email, $password_reset_key) {
-    $select_password_reset_key = "SELECT * FROM password_reset_key 
-    								INNER JOIN users 
-    								ON users.user_id = password_reset_key.user_id
-    								WHERE users.email = '";
-    $select_password_reset_key.= $email;
-    $select_password_reset_key.= "' AND password_reset_key.password_reset_key = '";
-    $select_password_reset_key.= $password_reset_key;
-    $select_password_reset_key.= "' LIMIT 1";
-    $select_password_reset_key_result = $mysqli->query($select_password_reset_key);
+    $select_password_reset_key_result = select_password_reset_key($mysqli, $email, $password_reset_key);
 
     if ($select_password_reset_key_result) {
 
@@ -1295,32 +904,17 @@ function display_password_reset_form($mysqli, $email, $password_reset_key) {
     }
 }
 
+
 function reset_password($mysqli, $email, $key, $password) {
-    $select_password_reset_key = "SELECT * FROM password_reset_key 
-    								INNER JOIN users 
-    								ON users.user_id = password_reset_key.user_id
-    								WHERE users.email = '";
-    $select_password_reset_key.= $email;
-    $select_password_reset_key.= "' AND password_reset_key.password_reset_key = '";
-    $select_password_reset_key.= $key;
-    $select_password_reset_key.= "' LIMIT 1";
-    $select_password_reset_key_result = $mysqli->query($select_password_reset_key);
+    $select_password_reset_key_result = select_password_reset_key($mysqli, $email, $key);
 
     if ($select_password_reset_key_result->num_rows != 0) {
         $password_reset_key = $select_password_reset_key_result->fetch_array();
 
-        $update_user_password = "UPDATE users SET password = '";
-        $update_user_password.= md5($password);
-        $update_user_password.= "' WHERE user_id = ";
-        $update_user_password.= $password_reset_key['user_id'];
-
-        $update_user_password_result = $mysqli->query($update_user_password);
+        $update_user_password_result = update_user_password($mysqli, $password_reset_key['user_id'], md5($password));
 
         echo($mysqli->error);
-        $delete_password_reset_key = "DELETE FROM password_reset_key WHERE user_id = ";
-        $delete_password_reset_key.= $password_reset_key['user_id'];
-
-        $delete_password_reset_key_result = $mysqli->query($delete_password_reset_key);
+        return delete_password_reset_key($mysqli, $password_reset_key['user_id']);
     }
 }
 
@@ -1338,41 +932,24 @@ function display_send_password_reset_email_form() {
 }
 
 function send_password_reset_email($mysqli, $email, $gmail_account, $gmail_password) {
-	$select_user = "SELECT * FROM users WHERE email = '";
-	$select_user.= $email;
-	$select_user.= "' LIMIT 1";
-
-	$select_user_result = $mysqli->query($select_user);
+	$select_user_result = select_user_by_email($mysqli, $email);
 	if ($select_user_result) {
 		$user = $select_user_result->fetch_array();
 
 		//Make Confirmation Key
 	    $password_reset_key = md5($user['name'].$user['email'].date("Ymdhms"));
 	    //Save it to database
-	    $insert_password_reset_key = "INSERT INTO password_reset_key (user_id, password_reset_key) VALUES (";
-	    $insert_password_reset_key.= $user['user_id'];
-	    $insert_password_reset_key.= ", '";
-	    $insert_password_reset_key.= $password_reset_key;
-	    $insert_password_reset_key.= "')";
-
-	    $insert_password_reset_key_result = $mysqli->query($insert_password_reset_key);
+	    $insert_password_reset_key_result = insert_password_reset_key($mysqli, $user_id, $password_reset_key);
 		$template = file_get_contents("password_reset_email_template.txt");
 		send_email($email, $user['name'], $password_reset_key, $gmail_account, $gmail_password, $template, "Reset your Password for Kevin's Store");
 	} else {
 
 	}
-
-
 }
-
 //PRODUCTDETAILS
 
 function display_product_details($mysqli, $product_id, $cart) {
-	$select_product = "SELECT * FROM products WHERE product_id = '";
-	$select_product.= $product_id;
-	$select_product.= "' LIMIT 1";
-
-	$select_product_result = $mysqli->query($select_product);
+	$select_product_result = select_product($mysqli, $product_id);
 
 	$product = $select_product_result->fetch_array();
 
@@ -1407,9 +984,7 @@ function add_quantity_to_session_cart($cart, $product_id, $quantity) {
 	if (isset($cart[$product_id])) {
 		$cart[$product_id]['quantity'] += $quantity;
 	} else {
-		$select_product = "SELECT * FROM products WHERE product_id = ";
-		$select_product.= $product_id;
-
+		$select_product_result = select_product($mysqli, $product_id);
 		$select_product_result = $mysqli->query($select_product);
 		if ($select_product_result->num_rows != 0) {
 			$product = $select_product_result->fetch_array();
@@ -1419,34 +994,14 @@ function add_quantity_to_session_cart($cart, $product_id, $quantity) {
 	return $cart;
 }
 
-function add_quantity_to_user_cart($mysqli, $user, $product_id, $quantity) {
-	$select_cart_product = "SELECT * FROM cart_product WHERE user_id = ";
-	$select_cart_product.= $user['user_id'];
-	$select_cart_product.= " AND product_id = ";
-	$select_cart_product.= $product_id;
-	$select_cart_product.= " LIMIT 1";
 
-	$select_cart_product_result = $mysqli->query($select_cart_product);
+function add_quantity_to_user_cart($mysqli, $user, $product_id, $quantity) {
+	$select_cart_product_result = select_cart_product_by_user_product($user['user_id'], $product_id);
 
 	if ($select_cart_product_result->num_rows > 0) {
-		$update_cart_product = "UPDATE cart_product SET quantity = quantity + ";
-		$update_cart_product.= $quantity;
-		$update_cart_product.= " WHERE user_id = ";
-		$update_cart_product.= $user['user_id'];
-		$update_cart_product.= " AND product_id = ";
-		$update_cart_product.= $product_id;
-
-		$update_cart_product_result = $mysqli->query($update_cart_product);
+		$update_cart_product_result = update_cart_product($mysqli, $user['user_id'], $product_id, $quantity);
 	} else {
-		$insert_cart_product = "INSERT INTO cart_product (product_id, user_id, quantity) VALUES (";
-		$insert_cart_product.= $product_id;
-		$insert_cart_product.= ", ";
-		$insert_cart_product.= $user['user_id'];
-		$insert_cart_product.= ", ";
-		$insert_cart_product.= $quantity;
-		$insert_cart_product.= ")";
-
-		$insert_cart_product_result = $mysqli->query($insert_cart_product);
+		$insert_cart_product_result = insert_cart_product($mysqli, $user['user_id'], $product_id, $quanity);
 	}
 }
 
@@ -1479,14 +1034,7 @@ function handle_transaction_id($transaction_id, $mysqli, $user) {
 	    $lines = explode("\n", trim($res));
 	    $keyarray = array();
 	    if (strcmp ($lines[0], "SUCCESS") == 0) {
-	    	$select_user_checkout = "SELECT * FROM checkouts 
-	    								INNER JOIN user_checkout
-	    								ON user_checkout.checkout_id = checkouts.checkout_id
-	    								WHERE user_checkout.user_id = ";
-	    	$select_user_checkout.= $user['user_id'];
-	    	$select_user_checkout.= " AND checkouts.payment_confirmed = 0";
-
-	    	$select_user_checkout_result = $mysqli->query($select_user_checkout);
+	    	$select_user_checkout_result = select_checkouts_by_user_payment_confirmed($mysqli, $user['user_id'], 0);
 	    	
 	    	$delete_cart_product = "DELETE FROM cart_product WHERE user_id = "; 
 	    	$delete_cart_product.= $user['user_id'];
@@ -1503,10 +1051,7 @@ function handle_transaction_id($transaction_id, $mysqli, $user) {
 				$checkout = $select_user_checkout_result->fetch_array();
 
 				if ($checkout['total_amount'] == $keyarray['mc_gross']) {
-					$update_checkout = "UPDATE checkouts SET payment_confirmed = 1 WHERE checkout_id = ";
-					$update_checkout.= $checkout['checkout_id'];
-					$update_checkout_result = $mysqli->query($update_checkout);
-
+					update_checkout_payment_confirmed($mysqli, $checkout['checkout_id'], 1);
 			    return $keyarray;
 				}
 	    	}
@@ -1515,6 +1060,7 @@ function handle_transaction_id($transaction_id, $mysqli, $user) {
 	    }
 	}
 }
+
 
 function display_complete_checkout_message($key_array) {
     $checkout_message = '<h1>Checkout Successful!</h1>
@@ -1552,4 +1098,16 @@ function display_complete_payment_form($checkout_amount) {
 	echo($paypal_form);
 }
 
+
+
+//ALL
+
+function check_login_redirect($session, $url) {
+    if (!isset($session['user'])) {
+    	$redirect = "Location: login.php?login_required=";
+    	$redirect.= $url;
+        header($redirect);
+        die();
+    }
+}
 ?>

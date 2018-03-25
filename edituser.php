@@ -3,6 +3,12 @@ require("includes/credentials.php");
 require("includes/functions.php");
 session_start();
 
+if (isset($_GET['user_id'])) {
+    $url = "edituser.php?user_id=";
+    $url.= $_GET['user_id'];
+    check_login_redirect($_SESSION, $url);
+}
+
 if (has_permissions($_SESSION['user']['permissions'], array(1024)) 
     && isset($_POST['edit']) && isset($_GET['user_id'])) {
     print_r($_POST);

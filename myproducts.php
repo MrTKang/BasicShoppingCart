@@ -2,6 +2,8 @@
 require("includes/functions.php");
 session_start();
 
+check_login_redirect($_SESSION, "myproducts.php");
+
 if (has_permissions($_SESSION['user']['permissions'], array(1)) && 
     isset($_SESSION['user']) && isset($_POST['product']) && isset($_FILES['upload'])) {
     print_r($_POST['category']);
@@ -38,7 +40,7 @@ if (has_permissions($_SESSION['user']['permissions'], array(1, 2, 4))
             if (has_permissions($_SESSION['user']['permissions'], array(1, 2, 4)) && isset($_SESSION['user'])) {
                 display_all_products($mysqli);
             } else if (isset($_SESSION['user'])) {
-                display_my_products($mysqli);
+                display_my_products($mysqli, $_SESSION['user']['user_id']);
             }
             ?>
             <a class="add-product-button btn btn-sm btn-outline-secondary"  href="#" data-toggle="modal" data-target="#exampleModal">Add Product</a>

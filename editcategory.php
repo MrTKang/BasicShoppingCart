@@ -3,6 +3,12 @@ require("includes/credentials.php");
 require("includes/functions.php");
 session_start();
 
+if (isset($_GET['category_id'])) {
+    $url = "editcategory.php?category_id=";
+    $url.= $_GET['category_id'];
+    check_login_redirect($_SESSION, $url);
+}
+
 if (has_permissions($_SESSION['user']['permissions'], array(128)) 
     && isset($_POST['edit']) && isset($_GET['category_id'])) {
     edit_category($mysqli, $_GET['category_id'], $_POST);

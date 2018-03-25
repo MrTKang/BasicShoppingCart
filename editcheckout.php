@@ -3,6 +3,12 @@ require("includes/credentials.php");
 require("includes/functions.php");
 session_start();
 
+if (isset($_GET['checkout_id'])) {
+    $url = "editcheckout.php?checkout_id=";
+    $url.= $_GET['checkout_id'];
+    check_login_redirect($_SESSION, $url);
+}
+
 if (has_permissions($_SESSION['user']['permissions'], array(1024)) &&
  isset($_POST['edit_checkout']) && 
  isset($_GET['checkout_id'])) {

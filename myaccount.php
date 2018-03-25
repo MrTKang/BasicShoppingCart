@@ -1,6 +1,7 @@
  <?php
     require("includes/functions.php");
     session_start();
+    check_login_redirect($_SESSION, "myaccount.php");
 ?>
 
 
@@ -18,11 +19,9 @@
     <body>
         <div class="account-container">
             <?php 
-
             if (isset($_SESSION['user'])) {
                 display_my_checkouts($mysqli, $_SESSION['user']);
             }
-
             ?>
         </div>
         <a href="myproducts">my products</a>

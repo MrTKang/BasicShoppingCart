@@ -3,6 +3,9 @@
   display: inline-block;
 }
 
+body {
+  font-family: 'Lato', sans-serif!important;
+}
 
 @media screen and (min-width: 576px) {
   .product-card {
@@ -65,7 +68,7 @@
 .edit-category-form,
 .edit-user-form,
 .password-reset-form {
-    padding-top: 10em;
+    padding-top: 4em;
     margin-left: auto;
     margin-right: auto;
     width: 300px;
@@ -175,4 +178,24 @@
 
 .payment-message {
   text-align: center;
+}
+
+.header-logo {
+  color: #343a40!important;
+  font-size: 27px;
+  font-weight: 900;
+}
+
+.header-logo:hover {
+  color: #343a40!important;
+  text-decoration: none;
+}
+
+.forgot-password {
+  float:right;
+}
+
+label {
+    margin-bottom: 0;
+    margin-top: .5rem;
 }

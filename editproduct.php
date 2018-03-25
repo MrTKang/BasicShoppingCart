@@ -3,6 +3,12 @@ require("includes/credentials.php");
 require("includes/functions.php");
 session_start();
 
+if (isset($_GET['product_id'])) {
+    $url = "editproduct.php?product_id=";
+    $url.= $_GET['product_id'];
+    check_login_redirect($_SESSION, $url);
+}
+
 if (can_edit_product($mysqli, $_SESSION['user'], $_GET['product_id'])
     && isset($_POST['edit']) && isset($_GET['product_id'])) {
 	edit_product($mysqli, $_GET['product_id'], $_POST);
