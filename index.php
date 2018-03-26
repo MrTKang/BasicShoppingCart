@@ -27,43 +27,43 @@ $logged_in = is_logged_in();
 	</head> 
 	<body> 
 		<div class="container"> 
-			<header class="blog-header py-3">
-				<div class="row flex-nowrap justify-content-between align-items-center">
-					<div class="col-4 pt-1">
-						<a class="text-muted" href="#">Subscribe</a>
-						<?php 
-						if ($logged_in) {
-						?>
-						|
-						<a class="text-muted" href="myaccount">My Account</a>
-						<?php
-						}
-						?>
-					</div>
-					<div class="col-4 text-center">
-						<a class="header-logo" href="index.php">Kevin's Store</a>
-					</div>
-					<div class="col-4 d-flex justify-content-end align-items-center">
-						<a class="text-muted" href="#">
-							<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-3"><circle cx="10.5" cy="10.5" r="7.5"></circle><line x1="21" y1="21" x2="15.8" y2="15.8"></line></svg>
-						</a>
-						<a class="btn btn-sm btn-outline-secondary"  href="#" data-toggle="modal" data-target="#exampleModal">Cart</a>
-
-						<?php 
-						if ($logged_in) {
-						?>
-						<a class="btn btn-sm btn-outline-secondary" href="index.php?logout=true">Log out</a>
-						<?php
-						} else {
-						?>
-						<a class="btn btn-sm btn-outline-secondary" href="login.php">Log in</a>
-						<?php
-						}
-						?>
-					</div>
+			<header class="site-header">
+				<div class="header-container">
+					<a class="site-logo" href="index.php">FreeStore</a>
+					<nav class="site-nav"> 
+						<ul class="main-nav">
+							<li><a href="">Shop</a></li>
+							<li><a href="">About</a></li>
+							<li><a href="">Contact</a></li>
+						</ul>
+						<ul class="secondary-nav">
+							<?php if ($logged_in) { ?>
+							<li><a href="myaccount.php">My Account</a></li>
+							<li><a href="login.php">Logout</a></li>
+							<?php  } else { ?>
+							<li><a href="login.php">Login</a></li>
+							<?php } ?>
+							<li><a href="checkout.php">Cart</a></li>
+						</nav>
+					</nav>
 				</div>
 			</header>
-			<div class="nav-scroller py-1 mb-2">
+
+			<nav class="category-nav">
+				<div class="main-category-nav-container">
+					<ul class="main-category-nav">
+						<?php 
+						if (isset($_GET['category'])) {
+							display_categories($mysqli, $_GET['category']); 
+						} else {
+							display_categories($mysqli, '');
+						}
+						?>
+					</ul>
+				</div>
+			</nav>
+
+		<!--	<div class="nav-scroller py-1 mb-2">
 				<nav class="nav d-flex justify-content-between">
 					<?php 
 					if (isset($_GET['category'])) {
@@ -79,6 +79,7 @@ $logged_in = is_logged_in();
 					<p class="lead my-3">Welcome to Kevin's Store. This is a basic online store created in php and html. You can view the source code at <a href="https://github.com/supakang/BasicShoppingCart">my github</a>.</p>
 				</div>
 			</div>
+		-->
       		<?php require("products.php") ?>
 		</div>
 

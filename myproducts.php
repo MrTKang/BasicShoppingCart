@@ -58,7 +58,7 @@ if (has_permissions($_SESSION['user']['permissions'], array(1, 2, 4))
                         <div class="modal-body">
                 Product name: <input class="form-control" type="text" name="name"><br>
                 Description: <input class="form-control" type="text" name="description"><br>
-                Price: <input class="form-control" type="number" name="price"><br>
+                Price: <input class="form-control" type="decimal" step="0.01" name="price"><br>
                 Image : <input class="form-control-file" type="file" name="upload" id="upload"><br>
 
             <select class="category-select form-control" name="category" form="productform">

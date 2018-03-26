@@ -11,7 +11,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'add') {
 	if (!isset($_GET['category'])) {
 		display_products($mysqli);
 	} else {
-		display_products_from_category($mysqli, $category);
+		display_products_from_category($mysqli, $_GET['category']);
 	}
 	?>
 </div>

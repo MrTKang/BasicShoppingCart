@@ -10,7 +10,6 @@ function select_products_by_category($mysqli, $category) {
 	$select_products.= "' and products.available = 1 ORDER BY name ASC";
 
 	$select_products_result = $mysqli->query($select_products);
-
 	return $select_products_result;
 }
 
@@ -155,7 +154,7 @@ function select_checkouts_by_user($mysqli, $user_id) {
     $select_user_checkouts.= "INNER JOIN shipment_status ";
     $select_user_checkouts.= "ON shipment_status.shipment_status_id = checkouts.shipment_status_id ";
     $select_user_checkouts.= "WHERE user_checkout.user_id=";
-    $select_user_checkouts.= $user['user_id'];
+    $select_user_checkouts.= $user_id;
 
     $select_user_checkouts_result = $mysqli->query($select_user_checkouts);
     return $select_user_checkouts_result;
@@ -166,7 +165,7 @@ function select_products_by_checkout($mysqli, $checkout_id) {
     $select_products.= "INNER JOIN product_checkout ";
     $select_products.= "ON products.product_id=product_checkout.product_id ";
     $select_products.= "WHERE product_checkout.checkout_id=";
-    $select_products.= $checkout['checkout_id'];
+    $select_products.= $checkout_id;
 
     $select_products_result = $mysqli->query($select_products);
     return $select_products_result;
@@ -197,13 +196,13 @@ function select_products_by_user($mysqli, $user_id) {
 
 function insert_product($mysqli, $name, $description, $price, $image) {
     $insert_product = "INSERT INTO products (name, description, price, image) VALUES ('";
-    $insert_product.= $product_post['name'];
+    $insert_product.= $name;
     $insert_product.= "', '";
-    $insert_product.= $product_post['description'];
+    $insert_product.= $description;
     $insert_product.= "', ";
-    $insert_product.= $product_post['price'];
+    $insert_product.= $price;
     $insert_product.= ", '";
-    $insert_product.= $target_file;
+    $insert_product.= $image;
     $insert_product.= "')";
 
     $insert_product_result = $mysqli->query($insert_product);
@@ -213,7 +212,7 @@ function insert_product($mysqli, $name, $description, $price, $image) {
 
 function insert_user_product($mysqli, $user_id, $product_id) {
     $insert_user_product = "INSERT INTO user_product (user_id, product_id) VALUES (";
-    $insert_user_product.= $user['user_id'];
+    $insert_user_product.= $user_id;
     $insert_user_product.= ",";
     $insert_user_product.= $product_id;
     $insert_user_product.= ")";
@@ -522,11 +521,11 @@ function update_cart_product($mysqli, $user_id, $product_id, $quantity) {
     return $update_cart_product_result;
 }
 
-function insert_cart_product($mysqli, $user_id, $product_id, $quanity) {
+function insert_cart_product($mysqli, $user_id, $product_id, $quantity) {
     $insert_cart_product = "INSERT INTO cart_product (product_id, user_id, quantity) VALUES (";
     $insert_cart_product.= $product_id;
     $insert_cart_product.= ", ";
-    $insert_cart_product.= $user['user_id'];
+    $insert_cart_product.= $user_id;
     $insert_cart_product.= ", ";
     $insert_cart_product.= $quantity;
     $insert_cart_product.= ")";
@@ -557,4 +556,14 @@ function update_checkout_payment_confirmed($mysqli, $checkout_id, $payment_confi
 
     return $update_checkout_result;
 }
+
+function exists_cart_product($mysqli, $user_id, $product_id) {
+    $select_cart_product = "SELECT * FROM cart_product WHERE user_id = ";
+    $select_cart_product.= $user_id;
+    $select_cart_product.= " AND product_id = ";
+    $select_cart_product.= $product_id;
+    $select_cart_product_result = $mysqli->query($select_cart_product);
+    return ($select_cart_product_result->num_rows > 0);
+}
+
 ?>

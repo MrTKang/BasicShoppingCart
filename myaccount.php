@@ -1,7 +1,6 @@
  <?php
     require("includes/functions.php");
     session_start();
-    check_login_redirect($_SESSION, "myaccount.php");
 ?>
 
 

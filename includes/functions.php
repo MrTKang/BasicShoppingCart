@@ -27,10 +27,12 @@ function display_products_from_category($mysqli, $category) {
 function display_product($product){
 	$product_div = '
 	<div class="product-card">
-		<div class="product-image-container">
-			<a href="productdetails.php?product_id={PRODUCT_ID}">
-				<img class="product-image" alt="Thumbnail" src="{IMAGE}">
-			</a>
+		<div class="product-padding-container">
+			<div class="product-image-container">
+				<a href="productdetails.php?product_id={PRODUCT_ID}">
+					<img class="product-image" alt="Thumbnail" src="{IMAGE}">
+				</a>
+			</div>
 		</div>
 		<div>{NAME}</div>
 		<div>${PRICE}</div>
@@ -47,7 +49,6 @@ function display_product($product){
 function add_to_cart($mysqli, $product_id, $session) {
 	if (isset($session['user'])) {
 		$select_cart_products_result = select_cart_product_by_user_product($mysqli, $session['user']['user_id'], $product_id);
-
 		if ($select_cart_products_result->num_rows > 0) {
 			$update_cart_product = "UPDATE cart_product SET quantity = quantity + 1";
 			$update_cart_product_result = $mysqli->query($update_cart_product);
@@ -101,12 +102,12 @@ function is_logged_in() {
 function display_categories($mysqli, $categoryname) {
 	$select_categories = "SELECT * FROM categories";
 	$categories_result = $mysqli->query($select_categories);
-	echo('<a class="category text-muted" href="/">HOME</a>');
+	echo('<li><a href="index.php">All</a></li>');
 	while ($category = $categories_result->fetch_array()) {
 		if ($categoryname == $category['name']) {
-			$category_anchor = '<a class="selected-category" href="index.php?category={CATEGORY}">{CATEGORY}</a>';
+			$category_anchor = '<li class="selected-category"><a href="index.php?category={CATEGORY}">{CATEGORY}</a></li>';
 		} else {
-			$category_anchor = '<a class="category text-muted" href="index.php?category={CATEGORY}">{CATEGORY}</a>';
+			$category_anchor = '<li><a href="index.php?category={CATEGORY}">{CATEGORY}</a></li>';
 		}
 		$category_anchor = str_replace("{CATEGORY}", $category['name'], $category_anchor);
 		echo($category_anchor);
@@ -368,7 +369,7 @@ function display_my_checkouts($mysqli, $user) {
 //MYPRODUCTS
 
 function add_inventory($mysqli, $product_id, $quantity) {
-	$select_product_result = select_product($product_id);
+	$select_product_result = select_product($mysqli, $product_id);
 
 	$product = $select_product_result->fetch_array();
 
@@ -435,10 +436,10 @@ function create_product($mysqli, $user, $product_post, $filename, $tempfilename)
     } else {
         echo "Sorry, there was an error uploading your file.";
     } 
-    $insert_product_result = insert_product($product_post['name'], $product_post['description'], $product_post['price'], $target_file);
+    $insert_product_result = insert_product($mysqli, $product_post['name'], $product_post['description'], $product_post['price'], $target_file);
     $product_id = $mysqli->insert_id;
 
-    $insert_user_product_result = insert_user_product($user['user_id'], $product_id);
+    $insert_user_product_result = insert_user_product($mysqli, $user['user_id'], $product_id);
 
     $select_category_id_result = select_category_by_name($mysqli, $product_post['category']);
 

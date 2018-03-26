@@ -1,6 +1,8 @@
 .product-card {
-  width: 100%;
   display: inline-block;
+  width: 100%;
+  text-align: center;
+  margin-top: 1em;
 }
 
 body {
@@ -10,21 +12,12 @@ body {
 @media screen and (min-width: 576px) {
   .product-card {
     width: 49.5%;
-    display: inline-block;
   }
 }
 
 @media screen and (min-width: 768px) {
   .product-card {
     width: 32.5%;
-    display: inline-block;
-  }
-}
-
-@media screen and (min-width: 992px) {
-  .product-card {
-    width: 24.6%;
-    display: inline-block;
   }
 }
 
@@ -32,12 +25,21 @@ body {
 
 }
 
+.product-padding-container {
+  border-radius: 0.5em;
+  padding: 40px 70px;
+  background-color:#fafafa;
+  display:inline-block;
+}
+
 .product-image-container{
-	height: 250px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  height: 280px;
 }
 
 .product-image {
-	width: 100%;
 	height: 100%;
 }
 
@@ -129,9 +131,9 @@ body {
 }
 
 .category-item, .user-item {
-    margin-left: auto;
-    margin-right: auto;
-    width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 400px;
 }
 
 .checkout-link {
@@ -159,13 +161,6 @@ body {
 .product-detail-image-container {
   height: 300px;
   width: 300px;
-}
-
-.selected-category {
-  color: #ffffff!important;
-  background-color: #6c757d;
-  border-radius: .2rem;
-  padding: .35rem 1rem;
 }
 
 .selected-category:hover {
@@ -196,6 +191,209 @@ body {
 }
 
 label {
-    margin-bottom: 0;
-    margin-top: .5rem;
+  margin-bottom: 0;
+  margin-top: .5rem;
 }
+
+
+.container {
+  max-width: none!important;
+  padding-left: 0px!important;
+  padding-right: 0px!important;
+}
+
+.site-logo {
+  font-size: 3em;
+  text-decoration: none;
+  color: #000;
+}
+.site-logo:hover {
+  text-decoration: none;
+  color: #000;
+}
+
+.site-nav {
+  display:inline-block;
+}
+
+.main-nav {
+  list-style-type: none;
+  margin-left: 1em;
+  letter-spacing: .2em;
+}
+
+.main-nav li {
+  display: inline-block;
+  font-size: 1.2em;
+}
+
+.main-nav li a {
+  color: #262626;
+  padding:3px;
+}
+
+.main-nav li a:hover {
+  text-decoration: none;
+  border-top: 2.5px solid #3b73e2;
+  border-top-color: #3b73e2;
+  border-top-width: 2.5px;
+}
+
+.secondary-nav {
+  list-style-type: none;
+  border: 0;
+  margin-top: 0;
+  padding-top: 1.1em;
+  position: absolute;
+  right: 2rem;
+  top: 0;
+}
+
+.secondary-nav li {
+  display: inline-block;
+  border-right: 1px solid #888;
+  padding: 0 .75em;
+}
+
+.secondary-nav li:last-child {
+  border: 0;
+  padding-right: 0;
+}
+
+.secondary-nav li a {
+  color:#888;
+}
+
+.header-container {
+  padding: 1.5rem 2rem 1.5rem 2rem;
+}
+
+.category-nav {
+  background-color: #f4f4f4;
+  overflow: hidden;
+}
+
+.selected-category {
+  border-top: 0.2em solid #3b73e2;
+  border-top-color: #3b73e2;
+  border-top-width: 2.5px;
+}
+
+.main-category-nav{
+  list-style-type: none;
+  text-align: center;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  padding-left: 0;
+}
+
+.main-category-nav li{
+  border-top: 0.2em solid #f4f4f4;
+  font-size: 1.05em;
+  display: inline-block;
+  margin-left: 2em;
+}
+
+.main-category-nav li:hover{
+  border-top: 0.2em solid #3b73e2;
+  border-top-color: #3b73e2;
+  border-top-width: 2.5px;
+}
+
+.main-category-nav li a{
+  color: #262626;
+  text-decoration: none;
+}
+
+.main-category-nav li:first-child{
+  margin-left: 0em;
+}
+
+.main-category-nav-container{
+}
+
+@media screen and (min-width: 576px) {
+  .site-header {
+
+  }
+  .main-nav {
+    margin-left: 1em;
+  }
+  .main-nav li {
+  }
+
+  .secondary-nav {
+
+  }
+
+  .category-nav {
+
+  }
+
+  .main-category-nav{
+    
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .site-header {
+
+  }
+  .site-logo {
+    font-size: 3.25em;
+  }
+
+  .main-nav {
+    margin-left: 1em;
+  }
+  .main-nav li {
+    margin-left: 3.00em;
+  }
+  .secondary-nav {
+
+  }
+
+  .category-nav {
+
+  }
+
+  .main-category-nav{
+    
+  }
+}
+
+@media screen and (min-width: 992px) {
+
+  .site-header {
+
+  }
+  .site-logo {
+    font-size: 3.5em;
+  }
+
+  .main-nav {
+    margin-left: 1em;
+  }
+
+  .main-nav li {
+    margin-left: 3.25em;
+  }
+
+  .secondary-nav {
+
+  }
+
+  .category-nav {
+
+  }
+
+  .main-category-nav{
+
+  }
+}
+
+
+
+
+
+
