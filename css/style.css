@@ -274,9 +274,7 @@ label {
 }
 
 .selected-category {
-  border-top: 0.2em solid #3b73e2;
-  border-top-color: #3b73e2;
-  border-top-width: 2.5px;
+  border-top: 0.2em solid #3b73e2!important;
 }
 
 .main-category-nav{
