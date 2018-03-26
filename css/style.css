@@ -294,8 +294,6 @@ label {
 
 .main-category-nav li:hover{
   border-top: 0.2em solid #3b73e2;
-  border-top-color: #3b73e2;
-  border-top-width: 2.5px;
 }
 
 .main-category-nav li a{
